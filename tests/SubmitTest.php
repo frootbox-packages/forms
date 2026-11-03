@@ -53,7 +53,9 @@ final class SubmitTest extends FormsTestCase
         $sent = $this->transport()->sent();
 
         self::assertCount(2, $sent);
-        self::assertSame(['team@example.org'], $sent[0]['message']->to, 'One mail per recipient, so they do not see each other.');
+        $recipients = array_map(static fn(array $mail): array => $mail['message']->to, $sent);
+        sort($recipients);
+        self::assertSame([['chefin@example.org'], ['team@example.org']], $recipients, 'One mail per recipient, so they do not see each other; jobs of the same millisecond have no order.');
         self::assertSame('ada@example.org', $sent[0]['message']->replyTo, 'An answer goes to the visitor.');
         self::assertStringContainsString('Kontakt', $sent[0]['message']->subject);
         self::assertStringContainsString("Name: Ada Lovelace\n", $sent[0]['message']->text);
