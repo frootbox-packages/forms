@@ -1,0 +1,75 @@
+{#- The entries of a form, newest first (decision 0222). -#}
+{% extends '@backend/layout.twig' %}
+{% import '@backend/ui.twig' as ui %}
+{% set heading = title ?: t('Without a title') %}
+{% set self = path('frootbox.forms.entries', {id: form.id}) %}
+
+{% block title %}{{ t('Entries') }} · {{ heading }}{% endblock %}
+
+{% block content %}
+<div class="fb-stack fb-stack--lg" id="entries">
+    <header class="fb-page-header">
+        <div class="fb-page-header__text">
+            <p class="fb-muted"><a href="{{ path('frootbox.forms.forms') }}">{{ t('Forms') }}</a> · <a href="{{ path('frootbox.forms.forms.show', {id: form.id}) }}">{{ heading }}</a></p>
+            <h1 class="fb-heading-1">{{ t('Entries') }}</h1>
+            <p class="fb-muted">{{ keepDays > 0 ? t(['Entries are deleted after one day.', 'Entries are deleted after {count} days.'], {count: keepDays}) : t('Entries stay until you delete them.') }}</p>
+        </div>
+        {% if list.total > 0 %}<div class="fb-cluster">{{ ui.button({label: t('Export as CSV'), href: path('frootbox.forms.entries.export', {id: form.id}), variant: 'outline', icon: 'file', attrs: {download: ''}}) }}</div>{% endif %}
+    </header>
+
+    <div class="fb-cluster">
+        <h2 class="fb-heading-4" id="entries-title" tabindex="-1" data-fb-focus>{{ t(['{count} entry', '{count} entries'], {count: list.total}) }}</h2>
+    </div>
+    {% if entries is empty %}
+    <section class="fb-card fb-card--padded" aria-labelledby="entries-title">
+        {{ ui.empty({icon: 'inbox', title: t('No entries yet'), text: t('What visitors send with this form appears here.')}) }}
+    </section>
+    {% else %}
+    {%- for entry in entries %}
+    <details class="fb-card fb-disclosure"{% if loop.first and list.page == 1 %} open{% endif %}>
+        <summary class="fb-disclosure__summary"><span>{{ ui.time(entry.createdAt) }}</span>{% if entry.summary %}<span class="fb-muted">{{ entry.summary }}</span>{% endif %}</summary>
+        <ul lang="{{ entry.language }}">
+            {%- for field in entry.fields %}
+            <li class="fb-list__item">
+                <span class="fb-list__main">
+                    <span class="fb-list__meta">{{ field.label }}</span>
+                    <span>{{ (field.value is same as(true) ? t('yes') : (field.value is same as(false) ? t('no') : (field.value is iterable ? field.value|join(', ') : field.value)))|nl2br }}</span>
+                </span>
+            </li>
+            {%- endfor %}
+            {% if can('frootbox/forms/entry.delete') %}
+            <li class="fb-list__item">
+                {{ ui.button({label: t('Delete the entry'), variant: 'danger', small: true, icon: 'trash', attrs: {commandfor: 'entry-delete', command: 'show-modal', 'data-fb-fill': {'ids[]': entry.id}|json_encode}}) }}
+            </li>
+            {% endif %}
+        </ul>
+    </details>
+    {%- endfor %}
+    {% endif %}
+    {% if list.pages > 1 %}
+    <nav class="fb-cluster" aria-label="{{ t('Pages of the list') }}">
+        {% if list.page > 1 %}{{ ui.button({label: t('Newer'), href: self ~ '?page=' ~ (list.page - 1), variant: 'outline', small: true}) }}{% endif %}
+        <span class="fb-muted">{{ t('Page {page} of {pages}', {page: list.page, pages: list.pages}) }}</span>
+        {% if list.page < list.pages %}{{ ui.button({label: t('Older'), href: self ~ '?page=' ~ (list.page + 1), variant: 'outline', small: true}) }}{% endif %}
+    </nav>
+    {% endif %}
+
+    {% if can('frootbox/forms/entry.delete') %}
+    <dialog class="fb-dialog" id="entry-delete" aria-labelledby="entry-delete-title">
+        <fb-form action="frootbox/forms/entry.delete" refresh="entries" done="{{ t('The entry is deleted.') }}">
+            <form novalidate>
+                <input type="hidden" name="ids[]">
+                <div class="fb-dialog__body">
+                    <h2 class="fb-dialog__title" id="entry-delete-title">{{ t('Delete the entry?') }}</h2>
+                    <p>{{ t('What the visitor sent is gone afterwards. Mails sent already stay with their recipients.') }}</p>
+                </div>
+                <div class="fb-dialog__actions">
+                    {{ ui.button({label: t('Cancel'), variant: 'outline', attrs: {commandfor: 'entry-delete', command: 'close', autofocus: true}}) }}
+                    {{ ui.button({label: t('Delete'), variant: 'danger-solid', type: 'submit'}) }}
+                </div>
+            </form>
+        </fb-form>
+    </dialog>
+    {% endif %}
+</div>
+{% endblock %}

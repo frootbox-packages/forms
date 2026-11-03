@@ -1,0 +1,27 @@
+{#- A new form as a draft (decision 0222). -#}
+{% extends '@backend/layout.twig' %}
+{% import '@backend/ui.twig' as ui %}
+
+{% block title %}{{ t('New form') }}{% endblock %}
+
+{% block content %}
+<div class="fb-stack fb-stack--lg">
+    <header class="fb-page-header">
+        <div class="fb-page-header__text">
+            <p class="fb-muted"><a href="{{ path('frootbox.forms.forms') }}">{{ t('Forms') }}</a></p>
+            <h1 class="fb-heading-1">{{ t('New form') }}</h1>
+        </div>
+    </header>
+
+    <fb-form action="frootbox/forms/form.create" next="{{ path('frootbox.forms.forms') }}/{id}" done="{{ t('The form is saved as a draft. Now add its fields.') }}">
+        <form class="fb-card fb-card--padded fb-stack" novalidate>
+            {{ ui.field({label: t('Title'), name: 'translations.' ~ language.code ~ '.title', id: 'form-title', required: true, hint: t('Shown above the form, e.g. "Contact".'), attrs: {lang: language.code, dir: language.direction.value, maxlength: 200}}) }}
+            {{ ui.field({label: t('Recipients'), name: 'recipients', id: 'form-recipients', multiline: true, optional: true, hint: t('Email addresses that get every entry, one per line. Without, the entries are only kept here.'), attrs: {'data-type': 'lines', rows: 3, dir: 'ltr'}}) }}
+            <div class="fb-form__actions">
+                {{ ui.button({label: t('Save as a draft'), type: 'submit'}) }}
+                {{ ui.button({label: t('Cancel'), variant: 'ghost', href: path('frootbox.forms.forms')}) }}
+            </div>
+        </form>
+    </fb-form>
+</div>
+{% endblock %}

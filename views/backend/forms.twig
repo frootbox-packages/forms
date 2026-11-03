@@ -1,0 +1,41 @@
+{#- The screen "Forms": all forms by title (decision 0222). -#}
+{% extends '@backend/layout.twig' %}
+{% import '@backend/ui.twig' as ui %}
+
+{% block title %}{{ t('Forms') }}{% endblock %}
+
+{% block content %}
+<div class="fb-stack fb-stack--lg">
+    <header class="fb-page-header">
+        <div class="fb-page-header__text">
+            <h1 class="fb-heading-1">{{ t('Forms') }}</h1>
+            <p class="fb-muted">{{ t('Forms for the website, e.g. for contact or registration. The block "Form" shows them on a page.') }}</p>
+        </div>
+        {% if can('frootbox/forms/form.create') %}<div class="fb-cluster">{{ ui.button({label: t('New form'), href: path('frootbox.forms.forms.new'), icon: 'plus'}) }}</div>{% endif %}
+    </header>
+
+    <section class="fb-card" aria-labelledby="forms-title">
+        <div class="fb-card__header">
+            <h2 class="fb-heading-4" id="forms-title">{{ t('Forms') }}</h2>
+            {{ ui.badge('neutral', forms|length) }}
+        </div>
+        {% if forms is empty %}
+        <div class="fb-card__body">
+            {{ ui.empty({icon: 'inbox', title: t('No forms yet'), text: t('Build the first one. It stays a draft until you publish it.'), action: can('frootbox/forms/form.create') ? {label: t('New form'), href: path('frootbox.forms.forms.new'), icon: 'plus'} : null}) }}
+        </div>
+        {% else %}
+        <ul>
+            {%- for form in forms %}
+            <li class="fb-list__item">
+                <span class="fb-list__main">
+                    <a class="fb-list__title fb-list__link" href="{{ path('frootbox.forms.forms.show', {id: form.id}) }}">{{ form.title ?: t('Without a title') }}</a>
+                    <span class="fb-list__meta">{{ t(['{count} field', '{count} fields'], {count: form.fields}) }} · {{ t(['{count} entry', '{count} entries'], {count: form.entries}) }}{% if form.languages|length > 1 %} · {{ form.languages|map(code => code|upper)|join(', ') }}{% endif %}</span>
+                </span>
+                {{ ui.status(form.status.value) }}
+            </li>
+            {%- endfor %}
+        </ul>
+        {% endif %}
+    </section>
+</div>
+{% endblock %}

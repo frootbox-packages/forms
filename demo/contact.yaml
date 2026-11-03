@@ -1,0 +1,74 @@
+# A demo contact form in German and English, for a website of the base
+# theme or a child theme with a start page, e.g. after the demo of
+# Bohnenglück:
+#
+#     php bin/frootbox seed frootbox/forms:demo/contact.yaml
+#
+# A page "Schreib uns" below the start page shows the form. In
+# development the mails go to the log.
+
+- page.tree: {}
+  as: tree
+
+- frootbox/forms/form.create:
+    translations:
+      de: { title: Schreib uns, button: Nachricht senden, success: 'Danke! Wir antworten innerhalb eines Werktags.' }
+      en: { title: Write to us, button: Send message, success: 'Thank you! We answer within one working day.' }
+    recipients: [hallo@bohnenglueck.example]
+  as: contact
+- frootbox/forms/form.field-add:
+    id: '${contact.id}'
+    key: name
+    type: text
+    required: true
+    translations: { de: { label: Name }, en: { label: Name } }
+- frootbox/forms/form.field-add:
+    id: '${contact.id}'
+    key: email
+    type: email
+    required: true
+    translations: { de: { label: E-Mail, hint: Damit wir Dir antworten können. }, en: { label: Email, hint: So we can answer you. } }
+- frootbox/forms/form.field-add:
+    id: '${contact.id}'
+    key: topic
+    type: select
+    translations:
+      de: { label: 'Worum geht es?', options: [Frage zum Kaffee, Röstkurs, Abo, Etwas anderes] }
+      en: { label: 'What is it about?', options: [A question about coffee, Roasting course, Subscription, Something else] }
+- frootbox/forms/form.field-add:
+    id: '${contact.id}'
+    key: message
+    type: textarea
+    required: true
+    translations: { de: { label: Nachricht }, en: { label: Message } }
+- frootbox/forms/form.field-add:
+    id: '${contact.id}'
+    key: privacy
+    type: consent
+    translations:
+      de: { label: 'Ich bin einverstanden, dass meine Angaben zur Beantwortung gespeichert werden.' }
+      en: { label: I agree that my details are stored to answer me. }
+- frootbox/forms/form.publish: { id: '${contact.id}' }
+
+- page.create:
+    layout: frootbox/theme-base/Page
+    parentId: '${tree.0.id}'
+    translations:
+      de:
+        title: Schreib uns
+        content:
+          fields: { title: Schreib uns, intro: 'Fragen zu Kaffee, Kursen oder Abo? Wir antworten innerhalb eines Werktags.' }
+          areas:
+            main:
+              - block: frootbox/forms/Form
+                options: { form: '${contact.id}' }
+      en:
+        title: Write to us
+        content:
+          fields: { title: Write to us, intro: 'Questions about coffee, courses or the subscription? We answer within one working day.' }
+          areas:
+            main:
+              - block: frootbox/forms/Form
+                options: { form: '${contact.id}' }
+  as: page
+- page.publish: { ids: ['${page.id}'] }

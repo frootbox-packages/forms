@@ -1,0 +1,221 @@
+{#- A form: texts by language, recipients and fields in the draft; publishing and deleting (decision 0222). -#}
+{% extends '@backend/layout.twig' %}
+{% import '@backend/ui.twig' as ui %}
+{% set has_draft = form.draft is not null %}
+{% set published = form.published is not null %}
+{% set refresh = 'form-detail' %}
+{% set self = path('frootbox.forms.forms.show', {id: form.id}) %}
+{% set heading = title ?: t('Without a title') %}
+{% set code = language.code %}
+{% set dir = language.direction.value %}
+{% set editable = can('frootbox/forms/form.update') %}
+
+{% block title %}{{ heading }} · {{ t('Forms') }}{% endblock %}
+
+{% block content %}
+<div class="fb-stack fb-stack--lg" id="form-detail">
+    <header class="fb-page-header">
+        <div class="fb-page-header__text">
+            <p class="fb-muted"><a href="{{ path('frootbox.forms.forms') }}">{{ t('Forms') }}</a></p>
+            <h1 class="fb-heading-1" tabindex="-1" data-fb-focus>{{ heading }}</h1>
+        </div>
+        <div class="fb-cluster">{{ ui.status(form.status.value) }}</div>
+    </header>
+
+    <div class="fb-cluster">
+        {% if can('frootbox/forms/entry.list') %}{{ ui.button({label: t(['{count} entry', '{count} entries'], {count: form.entries}), href: path('frootbox.forms.entries', {id: form.id}), variant: 'outline', icon: 'inbox'}) }}{% endif %}
+        {% if has_draft and can('frootbox/forms/form.publish') %}
+        <fb-form action="frootbox/forms/form.publish" refresh="{{ refresh }}" done="{{ t('The form is published.') }}">
+            <form novalidate>
+                <input type="hidden" name="id" value="{{ form.id }}">
+                {{ ui.button({label: t('Publish'), type: 'submit'}) }}
+            </form>
+        </fb-form>
+        {% endif %}
+        {% if has_draft and can('frootbox/forms/form.discard') %}
+            {{ ui.button({label: t('Discard the draft'), variant: 'danger', attrs: {commandfor: 'form-discard', command: 'show-modal'}}) }}
+        {% endif %}
+    </div>
+
+    <section class="fb-card" aria-labelledby="form-texts-title">
+        <h2 class="fb-visually-hidden" id="form-texts-title">{{ t('Texts') }}</h2>
+        {% if languages|length > 1 %}
+        {{ ui.tabs(t('Languages'), languages|map(item => {
+            label: item.title,
+            href: self ~ '?language=' ~ item.code,
+            current: item.code == code,
+            attrs: {lang: item.code},
+        })) }}
+        {% endif %}
+        <div class="fb-card__body fb-stack">
+            {% if translation %}
+            <fb-form action="frootbox/forms/form.update" refresh="{{ refresh }}" done="{{ t('Saved') }}">
+                <form class="fb-stack" novalidate>
+                    <input type="hidden" name="id" value="{{ form.id }}">
+                    {{ ui.field({label: t('Title'), name: 'translations.' ~ code ~ '.title', id: 'form-title', value: translation.title, required: true, disabled: not editable, attrs: {lang: code, dir: dir, maxlength: 200}}) }}
+                    {{ ui.field({label: t('Text of the button'), name: 'translations.' ~ code ~ '.button', id: 'form-button', value: translation.button, optional: true, disabled: not editable, hint: t('Empty for "Send".'), attrs: {lang: code, dir: dir, maxlength: 60}}) }}
+                    {{ ui.field({label: t('Text after sending'), name: 'translations.' ~ code ~ '.success', id: 'form-success', value: translation.success, optional: true, multiline: true, disabled: not editable, hint: t('Empty for a general thanks.'), attrs: {lang: code, dir: dir, rows: 3, maxlength: 1000}}) }}
+                    {% if editable %}
+                    <div class="fb-form__actions">{{ ui.button({label: t('Save'), type: 'submit', saves: true}) }}<p class="fb-form__note">{{ t('Changes go into the draft. Visitors see them after publishing.') }}</p></div>
+                    {% endif %}
+                </form>
+            </fb-form>
+            {% else %}
+            <div class="fb-missing">
+                <p class="fb-missing__title">{{ t('No version in {language} yet', {language: language.title}) }}</p>
+                <p class="fb-muted">{{ t('Visitors in this language see the form in the first language.') }}</p>
+                {% if editable %}
+                <fb-form action="frootbox/forms/form.update" refresh="{{ refresh }}" done="{{ t('Saved') }}">
+                    <form novalidate>
+                        <input type="hidden" name="id" value="{{ form.id }}">
+                        <input type="hidden" name="translations.{{ code }}.title" value="{{ source.title }}">
+                        {{ ui.button({label: t('Add the version in {language}', {language: language.title}), type: 'submit', variant: 'tonal', icon: 'plus'}) }}
+                    </form>
+                </fb-form>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+    </section>
+
+    <section class="fb-card" aria-labelledby="form-fields-title">
+        <div class="fb-card__header">
+            <h2 class="fb-heading-4" id="form-fields-title">{{ t('Fields') }}</h2>
+            {{ ui.badge('neutral', fields|length) }}
+            {% if editable %}{{ ui.button({label: t('Add a field'), variant: 'outline', small: true, icon: 'plus', attrs: {commandfor: 'field-add', command: 'show-modal'}}) }}{% endif %}
+        </div>
+        {% if fields is empty %}
+        <div class="fb-card__body">
+            {{ ui.empty({icon: 'inbox', title: t('No fields yet'), text: t('Add the fields visitors fill in, e.g. name, email and message.')}) }}
+        </div>
+        {% else %}
+        <ol>
+            {%- for field in fields %}
+            <li class="fb-list__item">
+                <span class="fb-list__main">
+                    <span class="fb-list__title"{% if field.label %} lang="{{ code }}" dir="{{ dir }}"{% endif %}>{{ field.label ?: t('Without a label') }}</span>
+                    <span class="fb-list__meta">{{ t(field.type.title()) }} · <code>{{ field.key }}</code></span>
+                </span>
+                {% if field.required %}{{ ui.badge('neutral', t('Required')) }}{% endif %}
+                {% if editable %}
+                {% set index = loop.index0 %}
+                {% set moves = [{position: index - 1, icon: 'arrow-up', label: t('Move {name} up', {name: field.label ?: field.key}), show: not loop.first}, {position: index + 1, icon: 'arrow-down', label: t('Move {name} down', {name: field.label ?: field.key}), show: not loop.last}] %}
+                {% for move in moves %}
+                {% if move.show %}
+                <fb-form action="frootbox/forms/form.field-move" refresh="{{ refresh }}" done="{{ t('Moved') }}">
+                    <form novalidate>
+                        <input type="hidden" name="id" value="{{ form.id }}">
+                        <input type="hidden" name="key" value="{{ field.key }}">
+                        <input type="hidden" name="position" value="{{ move.position }}" data-type="number">
+                        {{ ui.button({label: move.label, type: 'submit', variant: 'ghost', small: true, icon: move.icon, icon_only: true}) }}
+                    </form>
+                </fb-form>
+                {% endif %}
+                {% endfor %}
+                {{ ui.button({label: t('Edit {name}', {name: field.label ?: field.key}), variant: 'ghost', small: true, icon: 'pencil', icon_only: true, attrs: {commandfor: 'field-update', command: 'show-modal', 'data-fb-fill': field.fill|json_encode}}) }}
+                {{ ui.button({label: t('Remove {name}', {name: field.label ?: field.key}), variant: 'ghost', small: true, icon: 'trash', icon_only: true, attrs: {commandfor: 'field-remove', command: 'show-modal', 'data-fb-fill': {key: field.key}|json_encode}}) }}
+                {% endif %}
+            </li>
+            {%- endfor %}
+        </ol>
+        {% endif %}
+    </section>
+
+    <section class="fb-card fb-card--padded fb-stack" aria-labelledby="form-recipients-title">
+        <h2 class="fb-heading-4" id="form-recipients-title">{{ t('Recipients') }}</h2>
+        <fb-form action="frootbox/forms/form.update" refresh="{{ refresh }}" done="{{ t('Saved') }}">
+            <form class="fb-stack" novalidate>
+                <input type="hidden" name="id" value="{{ form.id }}">
+                {{ ui.field({label: t('Email addresses'), name: 'recipients', id: 'form-recipients', value: data.recipients|join("\n"), multiline: true, optional: true, disabled: not editable, hint: t('They get every entry, one address per line. Without, the entries are only kept here.'), attrs: {'data-type': 'lines', rows: 3, dir: 'ltr'}}) }}
+                {% if editable %}<div class="fb-form__actions">{{ ui.button({label: t('Save'), type: 'submit', saves: true}) }}</div>{% endif %}
+            </form>
+        </fb-form>
+    </section>
+
+    {% if can('frootbox/forms/form.delete') %}
+    <section class="fb-card fb-card--padded fb-stack" aria-labelledby="form-more-title">
+        <h2 class="fb-heading-4" id="form-more-title">{{ t('Delete') }}</h2>
+        <div class="fb-cluster">{{ ui.button({label: t('Delete the form'), variant: 'danger', attrs: {commandfor: 'form-delete', command: 'show-modal'}}) }}</div>
+    </section>
+    {% endif %}
+
+    {% if editable %}
+    {% for dialog in ['field-add', 'field-update'] %}
+    {% set adding = dialog == 'field-add' %}
+    <dialog class="fb-dialog" id="{{ dialog }}" aria-labelledby="{{ dialog }}-title">
+        <fb-form action="frootbox/forms/form.{{ dialog }}" refresh="{{ refresh }}" done="{{ adding ? t('The field is added.') : t('Saved') }}"{% if adding %} reset{% endif %}>
+            <form novalidate>
+                <input type="hidden" name="id" value="{{ form.id }}">
+                {% if not adding %}<input type="hidden" name="key">{% endif %}
+                <div class="fb-dialog__body fb-stack">
+                    <h2 class="fb-dialog__title" id="{{ dialog }}-title">{{ adding ? t('Add a field') : t('Edit the field') }}</h2>
+                    {{ ui.select({label: t('Type'), name: 'type', id: dialog ~ '-type', options: types|map(type => {value: type.value, label: t(type.label)})}) }}
+                    {{ ui.field({label: t('Label'), name: 'translations.' ~ code ~ '.label', id: dialog ~ '-label', required: true, attrs: {lang: code, dir: dir, maxlength: 200}}) }}
+                    {{ ui.field({label: t('Hint'), name: 'translations.' ~ code ~ '.hint', id: dialog ~ '-hint', optional: true, hint: t('A short help below the field.'), attrs: {lang: code, dir: dir, maxlength: 500}}) }}
+                    {{ ui.field({label: t('Options'), name: 'translations.' ~ code ~ '.options', id: dialog ~ '-options', multiline: true, optional: true, hint: t('Only for a drop-down list, one of several and several of several: one option per line.'), attrs: {lang: code, dir: dir, rows: 4, 'data-type': 'lines'}}) }}
+                    {{ ui.check({label: t('Required'), name: 'required', id: dialog ~ '-required', hint: t('Visitors must fill it in. Consent is always required.')}) }}
+                </div>
+                <div class="fb-dialog__actions">
+                    {{ ui.button({label: t('Cancel'), variant: 'outline', attrs: {commandfor: dialog, command: 'close'}}) }}
+                    {{ ui.button({label: adding ? t('Add') : t('Save'), type: 'submit'}) }}
+                </div>
+            </form>
+        </fb-form>
+    </dialog>
+    {% endfor %}
+
+    <dialog class="fb-dialog" id="field-remove" aria-labelledby="field-remove-title">
+        <fb-form action="frootbox/forms/form.field-remove" refresh="{{ refresh }}" done="{{ t('The field is removed.') }}">
+            <form novalidate>
+                <input type="hidden" name="id" value="{{ form.id }}">
+                <input type="hidden" name="key">
+                <div class="fb-dialog__body">
+                    <h2 class="fb-dialog__title" id="field-remove-title">{{ t('Remove the field?') }}</h2>
+                    <p>{{ t('Visitors no longer see it once you publish. Entries sent before keep its value.') }}</p>
+                </div>
+                <div class="fb-dialog__actions">
+                    {{ ui.button({label: t('Cancel'), variant: 'outline', attrs: {commandfor: 'field-remove', command: 'close', autofocus: true}}) }}
+                    {{ ui.button({label: t('Remove'), variant: 'danger-solid', type: 'submit'}) }}
+                </div>
+            </form>
+        </fb-form>
+    </dialog>
+    {% endif %}
+
+    {% if has_draft and can('frootbox/forms/form.discard') %}
+    <dialog class="fb-dialog" id="form-discard" aria-labelledby="form-discard-title">
+        <fb-form action="frootbox/forms/form.discard" {% if published %}refresh="{{ refresh }}"{% else %}next="{{ path('frootbox.forms.forms') }}"{% endif %} done="{{ t('The draft is discarded.') }}">
+            <form novalidate>
+                <input type="hidden" name="id" value="{{ form.id }}">
+                <div class="fb-dialog__body">
+                    <h2 class="fb-dialog__title" id="form-discard-title">{{ t('Discard the draft?') }}</h2>
+                    <p>{{ published ? t('Your changes to this form are lost. The published version stays.') : t('The form was never published and is gone afterwards.') }}</p>
+                </div>
+                <div class="fb-dialog__actions">
+                    {{ ui.button({label: t('Keep the draft'), variant: 'outline', attrs: {commandfor: 'form-discard', command: 'close', autofocus: true}}) }}
+                    {{ ui.button({label: t('Discard'), variant: 'danger-solid', type: 'submit'}) }}
+                </div>
+            </form>
+        </fb-form>
+    </dialog>
+    {% endif %}
+
+    {% if can('frootbox/forms/form.delete') %}
+    <dialog class="fb-dialog" id="form-delete" aria-labelledby="form-delete-title">
+        <fb-form action="frootbox/forms/form.delete" next="{{ path('frootbox.forms.forms') }}" done="{{ t('The form is deleted.') }}">
+            <form novalidate>
+                <input type="hidden" name="id" value="{{ form.id }}">
+                <div class="fb-dialog__body">
+                    <h2 class="fb-dialog__title" id="form-delete-title">{{ t('Delete {title}?', {title: heading}) }}</h2>
+                    <p>{{ t(['The form and its entry are deleted. Pages that show it show nothing in its place.', 'The form and its {count} entries are deleted. Pages that show it show nothing in its place.'], {count: form.entries}) }}</p>
+                </div>
+                <div class="fb-dialog__actions">
+                    {{ ui.button({label: t('Cancel'), variant: 'outline', attrs: {commandfor: 'form-delete', command: 'close', autofocus: true}}) }}
+                    {{ ui.button({label: t('Delete for good'), variant: 'danger-solid', type: 'submit'}) }}
+                </div>
+            </form>
+        </fb-form>
+    </dialog>
+    {% endif %}
+</div>
+{% endblock %}

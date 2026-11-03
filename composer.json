@@ -1,0 +1,38 @@
+{
+    "name": "frootbox/forms",
+    "description": "Forms for the Frootbox CMS: build forms from field types, send entries by mail through the queue, keep them in the backend, spam protection without a captcha",
+    "type": "frootbox-extension",
+    "license": "MIT",
+    "keywords": [
+        "cms",
+        "frootbox",
+        "forms",
+        "contact"
+    ],
+    "require": {
+        "php": ">=8.5",
+        "frootbox/core": "^0.1",
+        "frootbox/database": "^0.1",
+        "psr/http-message": "^2.0",
+        "psr/http-server-handler": "^1.0"
+    },
+    "suggest": {
+        "frootbox/backend": "Screens for the forms and their entries"
+    },
+    "autoload": {
+        "psr-4": {
+            "Frootbox\\Forms\\": "src/",
+            "Frootbox\\Forms\\Migrations\\": "migrations/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Frootbox\\Forms\\Tests\\": "tests/"
+        }
+    },
+    "extra": {
+        "branch-alias": {
+            "dev-main": "0.1.x-dev"
+        }
+    }
+}

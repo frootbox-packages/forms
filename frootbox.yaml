@@ -1,0 +1,3 @@
+title: Forms
+description: Forms built from field types, entries by mail and in the backend, spam protection without a captcha
+extension: Frootbox\Forms\FormsExtension

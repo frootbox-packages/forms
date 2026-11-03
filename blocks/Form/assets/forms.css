@@ -1,0 +1,36 @@
+/* SPDX-License-Identifier: MIT */
+/* A form of the forms module. Values come from the tokens of the theme, with fallbacks. */
+.forms { display: flex; flex-direction: column; gap: var(--space-m, 1.5rem); max-inline-size: 40rem; }
+.forms__title { margin: 0; font-size: var(--size-2xl, 2rem); }
+.forms__form { display: flex; flex-direction: column; gap: var(--space-s, 1rem); }
+.forms__note, .forms__hint { margin: 0; color: var(--color-muted, #57534e); font-size: var(--size-s, 0.875rem); }
+.forms__field { display: flex; flex-direction: column; gap: var(--space-3xs, 0.125rem); min-inline-size: 0; margin: 0; padding: 0; border: 0; }
+.forms__label { padding: 0; font-weight: 600; }
+.forms__required { margin-inline-start: 0.2em; color: var(--color-danger, #b42318); }
+.forms__input { inline-size: 100%; }
+textarea.forms__input { resize: vertical; }
+.forms__field--choices { gap: var(--space-2xs, 0.25rem); }
+.forms__choice { display: flex; align-items: flex-start; gap: var(--space-2xs, 0.5rem); }
+.forms__choice input { flex: none; inline-size: 1.25rem; min-block-size: 1.25rem; margin-block-start: 0.15em; padding: 0; accent-color: var(--color-primary, currentColor); }
+.forms__error { margin: 0; color: var(--color-danger, #b42318); font-size: var(--size-s, 0.875rem); font-weight: 600; }
+.forms__field:has([aria-invalid="true"]) .forms__input { border-color: var(--color-danger, #b42318); }
+.forms__alert, .forms__success { padding: var(--space-s, 1rem); border-radius: var(--radius, 0.5rem); background: var(--color-surface, #f5f5f4); }
+.forms__alert { border-inline-start: 4px solid var(--color-danger, #b42318); }
+.forms__success { border-inline-start: 4px solid var(--color-primary, currentColor); }
+.forms__alert p, .forms__success p { margin: 0; }
+.forms__alert[hidden], .forms__success[hidden], .forms__error[hidden] { display: none; }
+.forms__button {
+  align-self: flex-start;
+  min-block-size: 2.75rem;
+  padding: var(--space-2xs, 0.5rem) var(--space-m, 1.5rem);
+  border: 0;
+  border-radius: var(--radius-button, 0.5rem);
+  background: var(--color-primary, #1c1917);
+  color: var(--color-primary-contrast, #fff);
+  font-weight: 600;
+}
+.forms__button:hover { text-decoration: underline; text-decoration-thickness: 0.08em; text-underline-offset: 0.18em; }
+.forms__button[aria-disabled="true"] { opacity: 0.7; cursor: progress; }
+/* People leave this field empty, bots fill it in. */
+.forms__trap { position: absolute; inline-size: 1px; block-size: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.forms__empty { margin: 0; color: var(--color-muted, #57534e); }
