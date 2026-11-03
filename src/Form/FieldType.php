@@ -24,6 +24,7 @@ enum FieldType: string
     case Checkboxes = 'checkboxes';
     case Checkbox = 'checkbox';
     case Consent = 'consent';
+    case Files = 'files';
 
     /**
      * Whether visitors choose from options the editor gives.
@@ -50,6 +51,7 @@ enum FieldType: string
             self::Checkboxes => 'Several of several',
             self::Checkbox => 'Checkbox',
             self::Consent => 'Consent',
+            self::Files => 'Files',
         };
     }
 

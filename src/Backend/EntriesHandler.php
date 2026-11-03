@@ -59,6 +59,7 @@ final readonly class EntriesHandler implements RequestHandlerInterface
                 'createdAt' => $entry->createdAt,
                 'language' => $entry->language,
                 'summary' => self::summary($entry),
+                'about' => $entry->aboutTitle,
                 'fields' => $entry->fields,
             ], $list->entries),
         ]);

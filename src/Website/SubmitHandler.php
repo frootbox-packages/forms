@@ -18,6 +18,7 @@ use Frootbox\Core\Support\Message;
 use Psr\Http\Message\ResponseFactoryInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
+use Psr\Http\Message\UploadedFileInterface;
 use Psr\Http\Server\RequestHandlerInterface;
 
 /**
@@ -37,6 +38,7 @@ final readonly class SubmitHandler implements RequestHandlerInterface
         private ResponseFactoryInterface $responses,
         private Translator $translator,
         private Languages $languages,
+        private FormFiles $files,
     ) {}
 
     public function handle(ServerRequestInterface $request): ResponseInterface
@@ -53,11 +55,12 @@ final readonly class SubmitHandler implements RequestHandlerInterface
 
         $input = array_filter([
             'id' => $id,
-            'values' => \is_array($body['values'] ?? null) ? $body['values'] : [],
+            'values' => [...(\is_array($body['values'] ?? null) ? $body['values'] : []), ...$this->uploads($request)],
             'language' => $language,
             'token' => $text('_token'),
             'website' => $text('website'),
             'page' => $text('_page'),
+            'about' => $text('_about'),
         ], static fn(mixed $value): bool => null !== $value);
 
         try {
@@ -83,6 +86,37 @@ final readonly class SubmitHandler implements RequestHandlerInterface
         $message = $result instanceof SubmitResult ? $result->message : '';
 
         return $this->json->respond(['data' => ['message' => '' === $message ? $this->translate($language, new Message('Thank you, your message has been sent.')) : $message]]);
+    }
+
+    /**
+     * The files of the fields with files, "files[<key>][]", as tokens of
+     * uploads (decision 0230).
+     *
+     * @return array<string, list<string>>
+     */
+    private function uploads(ServerRequestInterface $request): array
+    {
+        $fields = $request->getUploadedFiles()['files'] ?? null;
+        $uploads = [];
+
+        if (!\is_array($fields)) {
+            return [];
+        }
+
+        foreach ($fields as $key => $files) {
+            $files = \is_array($files) ? $files : [$files];
+            $tokens = [];
+
+            foreach (\array_slice($files, 0, FormFiles::MOST + 1) as $file) {
+                if ($file instanceof UploadedFileInterface && \UPLOAD_ERR_NO_FILE !== $file->getError()) {
+                    $tokens[] = $this->files->receive($file);
+                }
+            }
+
+            $uploads[(string) $key] = $tokens;
+        }
+
+        return $uploads;
     }
 
     private function translate(string $language, Message $message): string

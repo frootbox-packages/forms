@@ -16,6 +16,7 @@ use Frootbox\Core\Url\Urls;
 use Frootbox\Forms\Form\Field;
 use Frootbox\Forms\Form\FieldType;
 use Frootbox\Forms\Form\FormStore;
+use Frootbox\Forms\Website\FormFiles;
 use Frootbox\Forms\Website\FormToken;
 
 /**
@@ -58,8 +59,14 @@ final readonly class Form implements BlockController
                 'token' => $this->tokens->issue($id),
                 'tokenUrl' => $this->router->path('frootbox.forms.token', ['id' => $id]),
                 'page' => $page,
+                // On the address of an object, e.g. a job, the entry is about it (decision 0230).
+                'about' => null === $context->target || $context->target->isPage() ? null : (string) $context->target,
                 'return' => null === $context->target ? '' : $this->urls->href($context->target, $context->language) ?? '',
                 'required' => [] !== array_filter($form->fields, static fn(Field $field): bool => $field->isRequired()),
+                'files' => [] !== array_filter($form->fields, static fn(Field $field): bool => FieldType::Files === $field->type),
+                'accept' => FormFiles::ACCEPT,
+                'most' => FormFiles::MOST,
+                'maxMb' => FormFiles::MAX_MB,
                 'fields' => array_map(static fn(Field $field): array => [
                     'key' => $field->key,
                     'type' => $field->type->value,

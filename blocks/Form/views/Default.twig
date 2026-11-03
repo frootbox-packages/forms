@@ -15,13 +15,14 @@ query: [fbForm, fbFormError]
     {%- if sent %}<p>{{ f.success ?: t('Thank you, your message has been sent.') }}</p>{% endif -%}
   </div>
   {% if not sent %}
-  <form class="forms__form" method="post" action="{{ f.action }}" data-forms data-forms-token="{{ f.tokenUrl }}" data-forms-thanks="{{ f.success ?: t('Thank you, your message has been sent.') }}" data-forms-failed="{{ t('The form could not be sent. Please check your entries and try again.') }}" data-forms-choose="{{ t('Please choose at least one.') }}">
+  <form class="forms__form" method="post" action="{{ f.action }}"{% if f.files %} enctype="multipart/form-data"{% endif %} data-forms data-forms-token="{{ f.tokenUrl }}" data-forms-thanks="{{ f.success ?: t('Thank you, your message has been sent.') }}" data-forms-failed="{{ t('The form could not be sent. Please check your entries and try again.') }}" data-forms-choose="{{ t('Please choose at least one.') }}">
     {% if failed %}<div class="forms__alert" role="alert" tabindex="-1" data-forms-alert><p>{{ t('The form could not be sent. Please check your entries and try again.') }}</p></div>
     {% else %}<div class="forms__alert" role="alert" tabindex="-1" data-forms-alert hidden></div>{% endif %}
     <input type="hidden" name="_form" value="{{ f.id }}">
     <input type="hidden" name="_language" value="{{ f.language }}">
     <input type="hidden" name="_token" value="{{ f.token }}">
     {% if f.page %}<input type="hidden" name="_page" value="{{ f.page }}">{% endif %}
+    {% if f.about %}<input type="hidden" name="_about" value="{{ f.about }}">{% endif %}
     <input type="hidden" name="_return" value="{{ f.return }}">
     <div class="forms__trap" aria-hidden="true">
       <label>Website <input type="text" name="website" tabindex="-1" autocomplete="off"></label>
@@ -50,6 +51,13 @@ query: [fbForm, fbFormError]
           <span>{{ field.label }}{{ mark }}</span>
         </label>
         {% if field.hint %}<p class="forms__hint" id="{{ id }}-hint">{{ field.hint }}</p>{% endif %}
+        <p class="forms__error" id="{{ id }}-error" data-forms-error hidden></p>
+      </div>
+      {% elseif field.type == 'files' %}
+      <div class="forms__field" data-forms-field="{{ field.key }}">
+        <label class="forms__label" for="{{ id }}">{{ field.label }}{{ mark }}</label>
+        <p class="forms__hint" id="{{ id }}-hint">{% if field.hint %}{{ field.hint }} {% endif %}{{ t('PDF, Word, OpenDocument, text or images, up to {count} files of at most {max} MB each.', {count: f.most, max: f.maxMb}) }}</p>
+        <input class="forms__input forms__input--files" type="file" id="{{ id }}" name="files[{{ field.key }}][]" multiple accept="{{ f.accept }}"{% if field.required %} required{% endif %} aria-describedby="{{ id }}-hint {{ id }}-error">
         <p class="forms__error" id="{{ id }}-error" data-forms-error hidden></p>
       </div>
       {% else %}

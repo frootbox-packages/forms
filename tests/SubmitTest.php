@@ -14,6 +14,9 @@ use Frootbox\Core\Action\InvalidInputException;
 use Frootbox\Core\Auth\TooManyAttemptsException;
 use Frootbox\Core\Queue\Worker;
 use Frootbox\Core\Schedule\Scheduler;
+use Frootbox\Core\Tests\Fixtures\Plugin\ItemPages;
+use Frootbox\Core\Tests\Fixtures\Plugin\PublishItems;
+use Frootbox\Core\Tests\Fixtures\Plugin\SaveItem;
 use Frootbox\Database\Values;
 use Frootbox\Forms\Entry\Entries;
 use Frootbox\Forms\Entry\PruneEntries;
@@ -163,5 +166,23 @@ final class SubmitTest extends FormsTestCase
         $entry = $this->get(Entries::class)->fetchOne();
         self::assertSame('en', $entry?->language);
         self::assertSame(['Your name', 'Email'], [$entry->fields[0]['label'], $entry->fields[1]['label']], 'The labels the visitor saw.');
+    }
+
+    public function testAnEntryFromTheAddressOfAnObjectIsAboutIt(): void
+    {
+        $id = $this->contactForm();
+        $item = '01JPLUGINITEM0000000000001';
+        $this->runner()->run(new SaveItem($item, ['de' => 'Barista (m/w/d)'], ['de' => 'barista']));
+        $this->runner()->run(new PublishItems([$item]));
+
+        $this->runner()->run(new SubmitForm($id, self::valid(), 'de', $this->token($id), about: ItemPages::TYPE . ':' . $item), Context::guest(address: '192.0.2.10'));
+        $this->runner()->run(new SubmitForm($id, self::valid(), 'de', $this->token($id), about: ItemPages::TYPE . ':01JPLUGINITEM0000000000009'), Context::guest(address: '192.0.2.11'));
+
+        $entries = iterator_to_array($this->get(Entries::class)->fetch(['order' => ['id' => 'asc']]), false);
+        self::assertSame([ItemPages::TYPE . ':' . $item, 'Barista (m/w/d)'], [$entries[0]->about, $entries[0]->aboutTitle]);
+        self::assertSame([null, null], [$entries[1]->about, $entries[1]->aboutTitle], 'A visitor cannot name what does not exist.');
+
+        $this->get(Worker::class)->run(5);
+        self::assertSame('Neue Einsendung: Kontakt – Barista (m/w/d)', $this->transport()->sent()[0]['message']->subject);
     }
 }

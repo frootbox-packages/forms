@@ -8,8 +8,29 @@ queue. Spam protection works without a captcha.
 ## Field types
 
 `text`, `email`, `phone`, `number`, `date`, `textarea`, `select`,
-`radio`, `checkboxes`, `checkbox` and `consent` (always required). Each
-field has a key, a label, a hint and, for choices, options by language.
+`radio`, `checkboxes`, `checkbox`, `consent` (always required) and
+`files`. Each field has a key, a label, a hint and, for choices, options
+by language.
+
+## Files
+
+A field `files` takes up to 5 files of at most 10 MB each, 20 MB
+together: PDF, DOCX, ODT, plain text, JPEG, PNG and WebP, checked by
+their content. They are kept in `storage/private/forms/<entry>/`, never
+mailed, and downloaded only in the backend at
+`/cms/forms/entries/{entry}/files/{file}` with the permission
+`frootbox/forms/entry.list`. A day after an entry is deleted the
+scheduler removes its files, so undoing the deletion keeps them.
+
+## What an entry is about
+
+On the address of an object, e.g. a job at `frootbox/jobs/job:<id>`, the
+block sends that target as `_about`. The entry keeps it with the
+published title of the object (`about`, `aboutTitle`); the mail subject
+and the CSV export name it.
+
+Another block can show a form with
+`render_block('frootbox/forms/Form', {form: id})`.
 
 ## Actions and queries
 

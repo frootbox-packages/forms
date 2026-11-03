@@ -12,8 +12,10 @@ use Frootbox\Backend\Tests\Support\BackendTestCase;
 use Frootbox\Core\Action\Context;
 use Frootbox\Core\Extension\ExtensionPackage;
 use Frootbox\Core\Extension\Extensions;
+use Frootbox\Core\Media\Uploads;
 use Frootbox\Forms\Backend\EntriesHandler;
 use Frootbox\Forms\Backend\ExportHandler;
+use Frootbox\Forms\Backend\FileHandler;
 use Frootbox\Forms\Backend\FormHandler;
 use Frootbox\Forms\Backend\FormsHandler;
 use Frootbox\Forms\Entry\Entries;
@@ -28,6 +30,7 @@ use PHPUnit\Framework\Attributes\CoversClass;
 #[CoversClass(EntriesHandler::class)]
 #[CoversClass(ExportHandler::class)]
 #[CoversClass(FormsExtension::class)]
+#[CoversClass(FileHandler::class)]
 final class BackendTest extends BackendTestCase
 {
     protected function tables(): array
@@ -102,6 +105,34 @@ final class BackendTest extends BackendTestCase
         $lines = explode("\r\n", (string) $csv->getBody());
         self::assertSame("\u{FEFF}\"Gesendet\",\"Sprache\",\"Name\",\"Nachricht\"", $lines[0]);
         self::assertStringEndsWith(",\"de\",\"'=1+1\",\"Zwei\nZeilen\"", $lines[1], 'A formula is read as text.');
+    }
+
+    public function testOnlyUsersWhoSeeTheEntriesGetTheirFiles(): void
+    {
+        $this->createUser('admin@example.org', ['admin']);
+        $this->createUser('editor@example.org', ['editor']);
+        $admin = $this->signIn('admin@example.org');
+        $id = $this->id($this->action('frootbox/forms/form.create', ['translations' => ['de' => ['title' => 'Bewerbung']]], $admin));
+        $this->action('frootbox/forms/form.field-add', ['id' => $id, 'type' => 'files', 'key' => 'documents', 'translations' => ['de' => ['label' => 'Unterlagen']]], $admin);
+        $this->action('frootbox/forms/form.publish', ['id' => $id], $admin);
+        $source = (string) tempnam(sys_get_temp_dir(), 'form');
+        file_put_contents($source, "%PDF-1.4\n%%EOF\n");
+        $upload = $this->get(Uploads::class)->store($source, 'Lebenslauf Ada.pdf', move: false);
+        $token = $this->get(FormToken::class)->issue($id, time() - 60);
+        $this->runner()->run(new SubmitForm($id, ['documents' => [$upload]], 'de', $token), Context::guest(address: '192.0.2.6'));
+        $entry = $this->get(Entries::class)->fetchOne();
+        self::assertNotNull($entry);
+        $file = ($entry->fields[0]['files'] ?? [])[0]['id'] ?? '';
+        $url = '/cms/forms/entries/' . $entry->id . '/files/' . $file;
+
+        self::assertStringContainsString('<a href="' . $url . '" download>Lebenslauf Ada.pdf</a>', $this->html($this->request('GET', '/cms/forms/' . $id . '/entries', session: $admin)));
+        $download = $this->request('GET', $url, session: $admin);
+        self::assertSame(200, $download->getStatusCode());
+        self::assertSame("attachment; filename=\"Lebenslauf_Ada.pdf\"; filename*=UTF-8''Lebenslauf%20Ada.pdf", $download->getHeaderLine('Content-Disposition'));
+        self::assertSame("%PDF-1.4\n%%EOF\n", (string) $download->getBody());
+        self::assertSame(403, $this->request('GET', $url, session: $this->signIn('editor@example.org'))->getStatusCode(), 'Editors build forms but do not read entries.');
+        self::assertSame(404, $this->request('GET', '/cms/forms/entries/' . $entry->id . '/files/01aaaaaaaaaaaaaaaaaaaaaaaa.pdf', session: $admin)->getStatusCode());
+        self::assertSame(302, $this->request('GET', $url)->getStatusCode(), 'Guests sign in first.');
     }
 
     /**

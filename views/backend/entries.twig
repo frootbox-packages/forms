@@ -29,11 +29,23 @@
     <details class="fb-card fb-disclosure"{% if loop.first and list.page == 1 %} open{% endif %}>
         <summary class="fb-disclosure__summary"><span>{{ ui.time(entry.createdAt) }}</span>{% if entry.summary %}<span class="fb-muted">{{ entry.summary }}</span>{% endif %}</summary>
         <ul lang="{{ entry.language }}">
+            {% if entry.about %}
+            <li class="fb-list__item">
+                <span class="fb-list__main">
+                    <span class="fb-list__meta">{{ t('Regarding') }}</span>
+                    <span>{{ entry.about }}</span>
+                </span>
+            </li>
+            {% endif %}
             {%- for field in entry.fields %}
             <li class="fb-list__item">
                 <span class="fb-list__main">
                     <span class="fb-list__meta">{{ field.label }}</span>
+                    {% if field.files ?? false %}
+                    <span class="fb-cluster">{% for file in field.files %}<a href="{{ path('frootbox.forms.entries.file', {entry: entry.id, file: file.id}) }}" download>{{ file.name }}</a>{% endfor %}</span>
+                    {% else %}
                     <span>{{ (field.value is same as(true) ? t('yes') : (field.value is same as(false) ? t('no') : (field.value is iterable ? field.value|join(', ') : field.value)))|nl2br }}</span>
+                    {% endif %}
                 </span>
             </li>
             {%- endfor %}

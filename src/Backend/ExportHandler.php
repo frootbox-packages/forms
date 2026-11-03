@@ -73,11 +73,12 @@ final readonly class ExportHandler implements RequestHandlerInterface
 
         $yes = $this->translator->get('yes');
         $no = $this->translator->get('no');
-        $rows = [[$this->translator->get('Sent'), $this->translator->get('Language'), ...array_values($columns)]];
+        $about = [] !== array_filter($entries, static fn(Entry $entry): bool => null !== $entry->aboutTitle);
+        $rows = [[$this->translator->get('Sent'), $this->translator->get('Language'), ...($about ? [$this->translator->get('Regarding')] : []), ...array_values($columns)]];
 
         foreach (array_reverse($entries) as $entry) {
             $values = array_column($entry->fields, 'value', 'key');
-            $row = [$entry->createdAt->format('Y-m-d H:i:s'), $entry->language];
+            $row = [$entry->createdAt->format('Y-m-d H:i:s'), $entry->language, ...($about ? [$entry->aboutTitle ?? ''] : [])];
 
             foreach (array_keys($columns) as $key) {
                 $row[] = isset($values[$key]) ? Entry::text($values[$key], $yes, $no) : '';

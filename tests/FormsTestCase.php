@@ -50,7 +50,7 @@ abstract class FormsTestCase extends NotesTestCase
     {
         $forms = ExtensionPackage::fromManifest('frootbox/forms', (string) realpath(self::ROOT), psr4: ['Frootbox\Forms\\' => ['src/'], 'Frootbox\Forms\Migrations\\' => ['migrations/']]);
 
-        return new Extensions([...FixtureSite::extensions('base', 'site')->packages, $forms], 'forms');
+        return new Extensions([...FixtureSite::extensions('base', 'site', 'plugin')->packages, $forms], 'forms');
     }
 
     protected function config(): array

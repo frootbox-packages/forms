@@ -16,6 +16,7 @@ use Frootbox\Core\Extension\Registry;
 use Frootbox\Core\Schedule\ScheduleRan;
 use Frootbox\Forms\Backend\EntriesHandler;
 use Frootbox\Forms\Backend\ExportHandler;
+use Frootbox\Forms\Backend\FileHandler;
 use Frootbox\Forms\Backend\FormHandler;
 use Frootbox\Forms\Backend\FormsHandler;
 use Frootbox\Forms\Entry\DeleteEntries;
@@ -36,6 +37,7 @@ use Frootbox\Forms\Form\RemoveField;
 use Frootbox\Forms\Form\ShowForm;
 use Frootbox\Forms\Form\UpdateField;
 use Frootbox\Forms\Form\UpdateForm;
+use Frootbox\Forms\Website\ForgetFiles;
 use Frootbox\Forms\Website\SubmitForm;
 use Frootbox\Forms\Website\SubmitHandler;
 use Frootbox\Forms\Website\TokenHandler;
@@ -71,6 +73,7 @@ final class FormsExtension implements Extension
         $registry->searchSource(FormSource::class);
         $registry->settings(FormsSettings::class);
         $registry->listen(ScheduleRan::class, PruneOldEntries::class);
+        $registry->listen(ScheduleRan::class, ForgetFiles::class);
 
         $registry->post(SubmitHandler::ROUTE, SubmitHandler::class, 'frootbox.forms.submit');
         $registry->get(TokenHandler::ROUTE, TokenHandler::class, 'frootbox.forms.token');
@@ -90,7 +93,8 @@ final class FormsExtension implements Extension
             ->get('/forms/new', FormHandler::class, 'frootbox.forms.forms.new')
             ->get('/forms/{id:[0-7][0-9A-HJKMNP-TV-Z]{25}}', FormHandler::class, 'frootbox.forms.forms.show')
             ->get('/forms/{id:[0-7][0-9A-HJKMNP-TV-Z]{25}}/entries', EntriesHandler::class, 'frootbox.forms.entries')
-            ->get('/forms/{id:[0-7][0-9A-HJKMNP-TV-Z]{25}}/entries.csv', ExportHandler::class, 'frootbox.forms.entries.export');
+            ->get('/forms/{id:[0-7][0-9A-HJKMNP-TV-Z]{25}}/entries.csv', ExportHandler::class, 'frootbox.forms.entries.export')
+            ->get('/forms/entries/{entry:[0-7][0-9A-HJKMNP-TV-Z]{25}}/files/{file:[0-9a-z]{26}\.[a-z]{3,4}}', FileHandler::class, 'frootbox.forms.entries.file');
 
         $registry->add(Screen::class, new Screen('Forms', 'frootbox.forms.forms', Screen::CONTENT, 'inbox', FormsHandler::PERMISSION, order: 25));
         $registry->add(SearchLink::class, new SearchLink(FormStore::TYPE, 'frootbox.forms.forms.show', 'id', 'inbox'));

@@ -18,7 +18,7 @@ use Frootbox\Database\Entity;
 final readonly class Entry extends Entity
 {
     /**
-     * @param list<array{key: string, label: string, type: string, value: string|list<string>|bool}> $fields The values with the labels of the moment
+     * @param list<array{key: string, label: string, type: string, value: string|list<string>|bool, files?: list<array{id: string, name: string, size: int}>}> $fields The values with the labels of the moment
      */
     public function __construct(
         public string $id,
@@ -27,6 +27,8 @@ final readonly class Entry extends Entity
         public array $fields,
         public ?string $pageId,
         public DateTimeImmutable $createdAt,
+        public ?string $about = null,
+        public ?string $aboutTitle = null,
     ) {}
 
     /**

@@ -22,6 +22,8 @@ use Frootbox\Core\Mail\Message as Mail;
 use Frootbox\Core\Mail\SendMail;
 use Frootbox\Core\Queue\Queue;
 use Frootbox\Core\Support\Message;
+use Frootbox\Core\Url\SubpageSources;
+use Frootbox\Core\Url\Target;
 use Frootbox\Database\Ulid;
 use Frootbox\Forms\Entry\Entries;
 use Frootbox\Forms\Entry\Entry;
@@ -59,9 +61,13 @@ final readonly class SubmitForm implements Action
         #[Description('The page the form was sent from')]
         #[Pattern(Ulid::PATTERN)]
         public ?string $page = null,
+        #[Description('What the form is about when it was sent from the address of an object, e.g. "frootbox/jobs/job:01J…" for an application')]
+        #[Length(max: 150)]
+        #[Pattern(Target::PATTERN)]
+        public ?string $about = null,
     ) {}
 
-    public function handle(FormStore $store, Languages $languages, FormToken $tokens, Sendings $sendings, Entries $entries, Queue $queue, Translator $translator, CurrentContext $context): SubmitResult
+    public function handle(FormStore $store, Languages $languages, FormToken $tokens, Sendings $sendings, Entries $entries, Queue $queue, Translator $translator, CurrentContext $context, FormFiles $files, SubpageSources $subpages): SubmitResult
     {
         $action = 'frootbox/forms/form.submit';
         $form = $store->published($this->id) ?? throw new InvalidInputException($action, ['/id' => new Message('The form is not online.')]);
@@ -72,7 +78,7 @@ final readonly class SubmitForm implements Action
             return $result;
         }
 
-        $submission = new Submission($form, $language, $this->values);
+        $submission = new Submission($form, $language, $this->values, $files);
 
         if ([] !== $submission->errors) {
             throw new InvalidInputException($action, $submission->errors);
@@ -90,13 +96,38 @@ final readonly class SubmitForm implements Action
         }
 
         $sendings->count($this->id, $address);
-        $entry = $entries->insert(['formId' => $this->id, 'language' => $language, 'fields' => $submission->fields, 'pageId' => $this->page]);
+        $id = Ulid::generate();
+        $fields = $submission->fields;
+
+        foreach ($fields as $index => $field) {
+            if (isset($submission->uploads[$field['key']])) {
+                $kept = $files->keep($id, $submission->uploads[$field['key']]);
+                $fields[$index] = [...$field, 'value' => array_column($kept, 'name'), 'files' => $kept];
+            }
+        }
+
+        [$about, $aboutTitle] = $this->about($subpages, $language);
+        $entry = $entries->insert(['id' => $id, 'formId' => $this->id, 'language' => $language, 'fields' => $fields, 'pageId' => $this->page, 'about' => $about, 'aboutTitle' => $aboutTitle]);
 
         foreach ($form->recipients as $recipient) {
             $queue->push(SendMail::of($this->mail($form, $entry, $recipient, $submission->replyTo(), $translator, $languages->default()->code)));
         }
 
         return $result;
+    }
+
+    /**
+     * The object the form was sent from with its title, only if it is
+     * published: a visitor cannot name anything else (decision 0230).
+     *
+     * @return array{string|null, string|null}
+     */
+    private function about(SubpageSources $subpages, string $language): array
+    {
+        $target = null === $this->about ? null : Target::tryParse($this->about);
+        $title = null === $target || $target->isPage() ? null : $subpages->get($target->type)?->title($target->id, $language);
+
+        return null === $target || null === $title ? [null, null] : [(string) $target, $title];
     }
 
     /**
@@ -108,16 +139,27 @@ final readonly class SubmitForm implements Action
         $packages = ['frootbox/forms'];
         $lines = [];
 
+        $files = false;
+
         foreach ($entry->fields as $field) {
             $value = Entry::text($field['value'], $translator->in($language, 'yes', $packages), $translator->in($language, 'no', $packages));
             $lines[] = $field['label'] . ':' . (str_contains($value, "\n") ? "\n" . $value . "\n" : ' ' . $value);
+            $files = $files || [] !== ($field['files'] ?? []);
+        }
+
+        // Files stay on the server: a mail is no place for a CV (decision 0230).
+        if ($files) {
+            $lines[] = '';
+            $lines[] = $translator->in($language, 'The files are with the entry in the backend.', $packages);
         }
 
         $title = $form->text($default)->title;
 
         return new Mail(
             [$recipient],
-            $translator->in($language, 'New entry: {form}', $packages, ['form' => $title]),
+            null === $entry->aboutTitle
+                ? $translator->in($language, 'New entry: {form}', $packages, ['form' => $title])
+                : $translator->in($language, 'New entry: {form} – {about}', $packages, ['form' => $title, 'about' => $entry->aboutTitle]),
             implode("\n", $lines) . "\n",
             $replyTo,
         );
