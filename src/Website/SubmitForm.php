@@ -20,9 +20,9 @@ use Frootbox\Core\I18n\Translator;
 use Frootbox\Core\Language\Languages;
 use Frootbox\Core\Mail\Message as Mail;
 use Frootbox\Core\Mail\SendMail;
+use Frootbox\Core\Plugin\Plugins;
 use Frootbox\Core\Queue\Queue;
 use Frootbox\Core\Support\Message;
-use Frootbox\Core\Url\SubpageSources;
 use Frootbox\Core\Url\Target;
 use Frootbox\Database\Ulid;
 use Frootbox\Forms\Entry\Entries;
@@ -67,7 +67,7 @@ final readonly class SubmitForm implements Action
         public ?string $about = null,
     ) {}
 
-    public function handle(FormStore $store, Languages $languages, FormToken $tokens, Sendings $sendings, Entries $entries, Queue $queue, Translator $translator, CurrentContext $context, FormFiles $files, SubpageSources $subpages): SubmitResult
+    public function handle(FormStore $store, Languages $languages, FormToken $tokens, Sendings $sendings, Entries $entries, Queue $queue, Translator $translator, CurrentContext $context, FormFiles $files, Plugins $subpages): SubmitResult
     {
         $action = 'frootbox/forms/form.submit';
         $form = $store->published($this->id) ?? throw new InvalidInputException($action, ['/id' => new Message('The form is not online.')]);
@@ -122,7 +122,7 @@ final readonly class SubmitForm implements Action
      *
      * @return array{string|null, string|null}
      */
-    private function about(SubpageSources $subpages, string $language): array
+    private function about(Plugins $subpages, string $language): array
     {
         $target = null === $this->about ? null : Target::tryParse($this->about);
         $title = null === $target || $target->isPage() ? null : $subpages->get($target->type)?->title($target->id, $language);
