@@ -16,6 +16,11 @@ Beschriftung, auf Wunsch einen Hinweis und bei Auswahlen seine
 Möglichkeiten, eine pro Zeile. Mit den Pfeilen änderst Du die
 Reihenfolge.
 
+Der Bildschirm eines Formulars hat Reiter: **Einsendungen** mit ihrer
+Zahl, **Texte**, **Felder**, **Empfänger** und **Weiteres** zum Löschen. Ein Punkt am Reiter zeigt,
+dass dort etwas noch nicht gespeichert ist. Die Sprache wählst Du oben
+neben dem Status, sie gilt für alle Reiter.
+
 Das Formular bleibt ein Entwurf, bis Du **Veröffentlichen** wählst.
 Änderungen an einem veröffentlichten Formular sind ebenfalls ein
 Entwurf; Besucher sehen sie, sobald Du wieder veröffentlichst.

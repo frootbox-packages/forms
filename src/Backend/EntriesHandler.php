@@ -46,6 +46,8 @@ final readonly class EntriesHandler implements RequestHandlerInterface
         $id = \is_string($id) ? $id : '';
         $page = $request->getQueryParams()['page'] ?? null;
         $page = \is_string($page) && ctype_digit($page) ? max(1, (int) $page) : 1;
+        $chosen = $request->getQueryParams()['language'] ?? null;
+        $language = \is_string($chosen) && $this->languages->has($chosen) ? $this->languages->get($chosen) : $this->languages->default();
         $details = $this->runner->ask(new ShowForm($id));
         $list = $this->runner->ask(new ListEntries($id, $page, self::PER_PAGE));
 
@@ -53,6 +55,8 @@ final readonly class EntriesHandler implements RequestHandlerInterface
             'form' => $details,
             'title' => $details->current()->text($this->languages->default()->code)->title,
             'list' => $list,
+            // The language of the form screen, so the tabs back to it keep it.
+            'language' => $language,
             'keepDays' => $this->settings->keepDays,
             'entries' => array_map(static fn(Entry $entry): array => [
                 'id' => $entry->id,

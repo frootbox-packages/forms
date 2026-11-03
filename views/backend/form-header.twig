@@ -1,0 +1,57 @@
+{#- The header of a form and of its entries: the same title, language, status and draft on both screens, so the bar of tabs below stays in its place (decision 0237).
+    Needs form, heading, language, refresh (the id of the part to load again), focus (false when another element takes the focus after a refresh)
+    and, for the switch of languages, languages and switch (the address without the language). -#}
+{% import '@backend/ui.twig' as ui %}
+{% set has_draft = form.draft is not null %}
+{% set published = form.published is not null %}
+<header class="fb-page-header">
+    <div class="fb-page-header__text">
+        <p class="fb-muted"><a href="{{ path('frootbox.forms.forms') }}">{{ t('Forms') }}</a></p>
+        <h1 class="fb-heading-1" tabindex="-1"{% if focus ?? true %} data-fb-focus{% endif %}>{{ heading }}</h1>
+    </div>
+    <div class="fb-cluster">
+        {% if (languages ?? [])|length > 1 %}
+        {{ ui.segmented(t('Languages'), languages|map(item => {
+            label: item.title,
+            href: switch ~ '?language=' ~ item.code,
+            current: item.code == language.code,
+            attrs: {lang: item.code},
+        })) }}
+        {% endif %}
+        {{ ui.status(form.status.value) }}
+    </div>
+</header>
+
+{% if has_draft and (can('frootbox/forms/form.publish') or can('frootbox/forms/form.discard')) %}
+<div class="fb-cluster">
+    {% if has_draft and can('frootbox/forms/form.publish') %}
+    <fb-form action="frootbox/forms/form.publish" refresh="{{ refresh }}" done="{{ t('The form is published.') }}">
+        <form novalidate>
+            <input type="hidden" name="id" value="{{ form.id }}">
+            {{ ui.button({label: t('Publish'), type: 'submit'}) }}
+        </form>
+    </fb-form>
+    {% endif %}
+    {% if has_draft and can('frootbox/forms/form.discard') %}
+        {{ ui.button({label: t('Discard the draft'), variant: 'danger', attrs: {commandfor: 'form-discard', command: 'show-modal'}}) }}
+    {% endif %}
+</div>
+{% endif %}
+
+{% if has_draft and can('frootbox/forms/form.discard') %}
+<dialog class="fb-dialog" id="form-discard" aria-labelledby="form-discard-title">
+    <fb-form action="frootbox/forms/form.discard" {% if published %}refresh="{{ refresh }}"{% else %}next="{{ path('frootbox.forms.forms') }}"{% endif %} done="{{ t('The draft is discarded.') }}">
+        <form novalidate>
+            <input type="hidden" name="id" value="{{ form.id }}">
+            <div class="fb-dialog__body">
+                <h2 class="fb-dialog__title" id="form-discard-title">{{ t('Discard the draft?') }}</h2>
+                <p>{{ published ? t('Your changes to this form are lost. The published version stays.') : t('The form was never published and is gone afterwards.') }}</p>
+            </div>
+            <div class="fb-dialog__actions">
+                {{ ui.button({label: t('Keep the draft'), variant: 'outline', attrs: {commandfor: 'form-discard', command: 'close', autofocus: true}}) }}
+                {{ ui.button({label: t('Discard'), variant: 'danger-solid', type: 'submit'}) }}
+            </div>
+        </form>
+    </fb-form>
+</dialog>
+{% endif %}

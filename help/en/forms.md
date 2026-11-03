@@ -17,6 +17,11 @@ number, a date, a drop-down list, one of several, several of several, a
 checkbox, a consent or files. Each field has a label, a hint if you like and,
 for choices, its options, one per line. Arrows change the order.
 
+The screen of a form has tabs: **Entries** with their number,
+**Texts**, **Fields**, **Recipients** and **More** to delete it. A dot on a tab shows that something there is
+not saved yet. Choose the language at the top next to the status; it
+holds for all tabs.
+
 The form stays a draft until you choose **Publish**. Changes to a
 published form are a draft as well; visitors see them once you publish
 again.

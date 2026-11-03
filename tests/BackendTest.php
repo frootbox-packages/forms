@@ -72,7 +72,7 @@ final class BackendTest extends BackendTestCase
         self::assertStringContainsString('<fb-form action="frootbox/forms/form.field-move"', $show);
         self::assertStringContainsString('team@example.org</textarea>', $show);
         self::assertStringContainsString('<fb-form action="frootbox/forms/form.publish"', $show);
-        self::assertStringNotContainsString('href="/cms/forms/' . $id . '/entries"', $show, 'Editors do not see the entries.');
+        self::assertStringNotContainsString('/cms/forms/' . $id . '/entries', $show, 'Editors do not see the entries.');
 
         $this->action('frootbox/forms/form.publish', ['id' => $id], $session);
         self::assertStringContainsString('href="/cms/forms/' . $id . '">Kontakt</a>', $this->html($this->request('GET', '/cms/forms', session: $session)));
@@ -98,6 +98,9 @@ final class BackendTest extends BackendTestCase
         self::assertStringContainsString('Zwei<br />' . "\n" . 'Zeilen', $entries);
         self::assertStringContainsString('Einsendungen werden nach 180 Tagen gelöscht.', $entries);
         self::assertStringContainsString('<fb-form action="frootbox/forms/entry.delete"', $entries);
+        self::assertStringContainsString('<h1 class="fb-heading-1" tabindex="-1">Kontakt</h1>', $entries, 'The same header as the form.');
+        self::assertStringContainsString('<a href="/cms/forms/' . $id . '?language=de#fields" data-count="2">', $entries, 'The other tabs lead back to the form.');
+        self::assertStringContainsString('<a href="/cms/forms/' . $id . '/entries?language=de" data-count="1">', $this->html($this->request('GET', '/cms/forms/' . $id, session: $session)), 'The entries are the first tab of the form.');
 
         $csv = $this->request('GET', '/cms/forms/' . $id . '/entries.csv', session: $session);
         self::assertSame('text/csv; charset=utf-8', $csv->getHeaderLine('Content-Type'));
