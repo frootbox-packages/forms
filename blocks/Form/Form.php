@@ -60,7 +60,7 @@ final readonly class Form implements BlockController
                 'tokenUrl' => $this->router->path('frootbox.forms.token', ['id' => $id]),
                 'page' => $page,
                 // On the address of an object, e.g. a job, the entry is about it (decision 0230).
-                'about' => null === $context->target || $context->target->isPage() ? null : (string) $context->target,
+                'about' => null === $context->subpage ? null : (string) $context->subpage->target,
                 'return' => null === $context->target ? '' : $this->urls->href($context->target, $context->language) ?? '',
                 'required' => [] !== array_filter($form->fields, static fn(Field $field): bool => $field->isRequired()),
                 'files' => [] !== array_filter($form->fields, static fn(Field $field): bool => FieldType::Files === $field->type),
