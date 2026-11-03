@@ -46,7 +46,9 @@ final class SubmitTest extends FormsTestCase
         $entry = $this->get(Entries::class)->fetchOne();
         self::assertNotNull($entry);
         self::assertSame('de', $entry->language);
-        self::assertSame(['key' => 'eMailAdresse', 'label' => 'E-Mail-Adresse', 'type' => 'email', 'value' => 'ada@example.org'], $entry->fields[1]);
+        $field = $entry->fields[1];
+        ksort($field); // MySQL keeps no order of keys in JSON columns.
+        self::assertSame(['key' => 'eMailAdresse', 'label' => 'E-Mail-Adresse', 'type' => 'email', 'value' => 'ada@example.org'], $field);
         self::assertTrue($entry->fields[3]['value'], 'Consent is kept as true.');
 
         self::assertSame(2, $this->get(Worker::class)->run(5)->done, 'Mails leave through the queue.');

@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace Frootbox\Forms\Form;
 
+use Frootbox\Core\Language\Languages;
 use Frootbox\Core\Revision\Revisions;
 use Frootbox\Core\Revision\RevisionStatus;
 use Frootbox\Database\EntityNotFoundException;
@@ -24,20 +25,40 @@ final readonly class FormStore
     public function __construct(
         private Revisions $revisions,
         private Entries $entries,
+        private Languages $languages,
     ) {}
 
     public function draft(string $id): ?FormData
     {
         $revision = $this->revisions->draft(self::TYPE, $id);
 
-        return null === $revision ? null : FormData::fromArray($revision->data);
+        return null === $revision ? null : $this->load($revision->data);
     }
 
     public function published(string $id): ?FormData
     {
         $revision = $this->revisions->published(self::TYPE, $id);
 
-        return null === $revision ? null : FormData::fromArray($revision->data);
+        return null === $revision ? null : $this->load($revision->data);
+    }
+
+    /**
+     * The texts of the form and its fields in the order of the languages,
+     * the same on every database.
+     *
+     * @param array<mixed> $data
+     */
+    private function load(array $data): FormData
+    {
+        if (\is_array($data['translations'] ?? null)) {
+            $data['translations'] = $this->languages->sort($data['translations']);
+        }
+
+        if (\is_array($data['fields'] ?? null)) {
+            $data['fields'] = array_map(fn(mixed $field): mixed => \is_array($field) && \is_array($field['translations'] ?? null) ? ['translations' => $this->languages->sort($field['translations'])] + $field : $field, $data['fields']);
+        }
+
+        return FormData::fromArray($data);
     }
 
     /**
@@ -70,8 +91,8 @@ final readonly class FormStore
                 default => FormStatus::Changed,
             },
             $published?->version,
-            null === $draft ? null : FormData::fromArray($draft->data),
-            null === $published ? null : FormData::fromArray($published->data),
+            null === $draft ? null : $this->load($draft->data),
+            null === $published ? null : $this->load($published->data),
             $this->entries->count(['formId' => $id]),
         );
     }
