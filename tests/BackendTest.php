@@ -18,6 +18,7 @@ use Frootbox\Forms\Backend\ExportHandler;
 use Frootbox\Forms\Backend\FileHandler;
 use Frootbox\Forms\Backend\FormHandler;
 use Frootbox\Forms\Backend\FormsHandler;
+use Frootbox\Forms\Captcha\Proofs;
 use Frootbox\Forms\Entry\Entries;
 use Frootbox\Forms\FormsExtension;
 use Frootbox\Forms\Website\FormToken;
@@ -35,7 +36,7 @@ final class BackendTest extends BackendTestCase
 {
     protected function tables(): array
     {
-        return [Entries::TABLE, Sendings::TABLE];
+        return [Entries::TABLE, Sendings::TABLE, Proofs::TABLE];
     }
 
     protected function extensions(): Extensions
