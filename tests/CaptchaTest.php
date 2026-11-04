@@ -24,7 +24,9 @@ use Frootbox\Forms\Captcha\MathCaptcha;
 use Frootbox\Forms\Captcha\ProofHandler;
 use Frootbox\Forms\Captcha\ProofOfWork;
 use Frootbox\Forms\Captcha\Proofs;
+use Frootbox\Forms\Entry\DeleteEntries;
 use Frootbox\Forms\Entry\Entries;
+use Frootbox\Forms\Entry\EntryIds;
 use Frootbox\Forms\Entry\ListEntries;
 use Frootbox\Forms\Entry\PruneEntries;
 use Frootbox\Forms\Entry\ReleaseEntries;
@@ -50,6 +52,8 @@ use PHPUnit\Framework\Attributes\CoversClass;
 #[CoversClass(LinkCheck::class)]
 #[CoversClass(WordCheck::class)]
 #[CoversClass(ReleaseEntries::class)]
+#[CoversClass(DeleteEntries::class)]
+#[CoversClass(EntryIds::class)]
 #[CoversClass(PruneEntries::class)]
 final class CaptchaTest extends FormsTestCase
 {
@@ -206,6 +210,26 @@ final class CaptchaTest extends FormsTestCase
         self::assertSame([null, null], $this->reasons());
         self::assertSame(1, $this->get(Worker::class)->run(5)->done, 'Mailed when it leaves the spam folder.');
         self::assertSame(0, $this->runner()->run(new ReleaseEntries([$spam->entries[0]->id])), 'Once only.');
+    }
+
+    public function testAnIdWithoutAnEntryChangesNothing(): void
+    {
+        $id = $this->contactForm();
+        $this->submit($id, self::valid());
+        $entry = $this->runner()->ask(new ListEntries($id, spam: true))->entries[0]->id;
+
+        foreach ([new ReleaseEntries([$entry, '']), new DeleteEntries(['01JZZZZZZZZZZZZZZZZZZZZZZZ', $entry])] as $action) {
+            try {
+                $this->runner()->run($action);
+                self::fail('An id without an entry fails the action.');
+            } catch (InvalidInputException $exception) {
+                self::assertSame([$action instanceof ReleaseEntries ? '/ids/1' : '/ids/0'], array_keys($exception->errors));
+                self::assertSame('There is no such entry.', $exception->errors[$action instanceof ReleaseEntries ? '/ids/1' : '/ids/0']);
+            }
+        }
+
+        $after = $this->runner()->ask(new ListEntries($id, spam: true));
+        self::assertSame([1, 0], [$after->spam, $after->inbox], 'Neither released nor deleted.');
     }
 
     public function testSpamGoesAfterThirtyDays(): void

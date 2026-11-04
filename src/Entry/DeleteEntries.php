@@ -28,6 +28,7 @@ final readonly class DeleteEntries implements Action
 
     public function handle(Entries $entries): int
     {
+        EntryIds::check($entries, 'frootbox/forms/entry.delete', $this->ids);
         $deleted = 0;
 
         foreach (array_unique($this->ids) as $id) {

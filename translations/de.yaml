@@ -140,6 +140,7 @@
 "The captcha is not solved.": "Das Captcha ist nicht gelöst."
 "Spam protection": "Spam-Schutz"
 "There is no such captcha.": "Dieses Captcha gibt es nicht."
+"There is no such entry.": "Diese Einsendung gibt es nicht."
 "Captcha": "Captcha"
 "The captcha of forms that choose none of their own: frootbox/forms/proof-of-work (invisible), frootbox/forms/math (a sum to solve), the name of one from another extension or none.": "Das Captcha der Formulare, die keins selbst wählen: frootbox/forms/proof-of-work (unsichtbar), frootbox/forms/math (Rechenaufgabe), der Name eines Captchas aus einer anderen Extension oder none."
 "Links in an entry": "Links in einer Einsendung"

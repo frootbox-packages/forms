@@ -16,7 +16,8 @@ use Frootbox\Forms\Form\FormStore;
 /**
  * Takes entries out of the spam folder (decision 0261): they move to the
  * inbox and are mailed now, as if they had come through. Not undoable:
- * the mails leave the house.
+ * the mails leave the house. An entry that is in the inbox already is
+ * left as it is; an id without an entry fails the action.
  *
  * @implements Action<int>
  */
@@ -33,6 +34,7 @@ final readonly class ReleaseEntries implements Action
 
     public function handle(Entries $entries, FormStore $store, EntryMails $mails): int
     {
+        EntryIds::check($entries, 'frootbox/forms/entry.release', $this->ids);
         $released = 0;
 
         foreach (array_unique($this->ids) as $id) {
