@@ -10,17 +10,20 @@ namespace Frootbox\Forms\Website;
 
 use Frootbox\Core\Media\Documents;
 use Frootbox\Core\Media\Uploads;
-use Frootbox\Core\ProjectPaths;
+use Frootbox\Core\Storage\FileStores;
+use Frootbox\Core\Storage\StorageException;
 use Frootbox\Database\Ulid;
 use Frootbox\Forms\Entry\Entries;
+use Psr\Http\Message\StreamInterface;
 use Psr\Http\Message\UploadedFileInterface;
 use Throwable;
 
 /**
  * Files that visitors send with a form (decision 0230), e.g. an
  * application with a CV. They wait as uploads of the core until the form
- * is sent, then stay below storage/private/forms/<entry>/, where only
- * signed-in users with the permission for entries get them. Documents and
+ * is sent, then stay below private/forms/<entry>/ in the store for data
+ * (storage/ or a bucket, decision 0268), where only signed-in users with
+ * the permission for entries get them. Documents and
  * images only, at most MOST files of MAX_MB each and TOTAL_MB together.
  *
  * Deleting an entry can be undone, so its files stay a day after the
@@ -59,7 +62,7 @@ final readonly class FormFiles
 
     public function __construct(
         private Uploads $uploads,
-        private ProjectPaths $paths,
+        private FileStores $stores,
     ) {}
 
     /**
@@ -106,7 +109,8 @@ final readonly class FormFiles
     }
 
     /**
-     * Moves the uploads to the folder of the entry.
+     * Moves the uploads to the folder of the entry in the store for data
+     * (decision 0268).
      *
      * @param list<string> $tokens
      *
@@ -124,27 +128,25 @@ final readonly class FormFiles
                 continue;
             }
 
-            $directory = $this->directory($entryId);
+            $id = strtolower(Ulid::generate()) . '.' . self::TYPES[$file['type']];
 
-            if (!is_dir($directory) && !@mkdir($directory, 0o770, true) && !is_dir($directory)) {
+            try {
+                $this->stores->storage()->writeFile($this->directory($entryId) . '/' . $id, $path, $file['type'], move: true);
+            } catch (StorageException) {
                 continue;
             }
 
-            $id = strtolower(Ulid::generate()) . '.' . self::TYPES[$file['type']];
-
-            if (@rename($path, $directory . '/' . $id)) {
-                $this->uploads->remove($token);
-                $kept[] = ['id' => $id, 'name' => $file['name'], 'size' => $file['size']];
-            }
+            $this->uploads->remove($token);
+            $kept[] = ['id' => $id, 'name' => $file['name'], 'size' => $file['size']];
         }
 
         return $kept;
     }
 
     /**
-     * The path of a kept file, null if there is none.
+     * The path of a kept file in the store for data, null if there is none.
      */
-    public function path(string $entryId, string $fileId): ?string
+    public function find(string $entryId, string $fileId): ?string
     {
         if (!Ulid::isValid($entryId) || 1 !== preg_match('/^[0-9a-z]{26}\.[a-z]{3,4}$/', $fileId)) {
             return null;
@@ -152,7 +154,20 @@ final readonly class FormFiles
 
         $path = $this->directory($entryId) . '/' . $fileId;
 
-        return is_file($path) ? $path : null;
+        return $this->stores->storage()->exists($path) ? $path : null;
+    }
+
+    public function size(string $path): int
+    {
+        return $this->stores->storage()->info($path)->size ?? 0;
+    }
+
+    /**
+     * The bytes of a kept file as they are read.
+     */
+    public function stream(string $path): StreamInterface
+    {
+        return $this->stores->storage()->readRange($path);
     }
 
     /**
@@ -165,27 +180,36 @@ final readonly class FormFiles
     {
         $now ??= time();
         $removed = 0;
+        $store = $this->stores->storage();
+        $folders = [];
 
-        foreach (self::glob($this->paths->storage(self::DIRECTORY) . '/*', \GLOB_ONLYDIR) as $directory) {
-            $id = basename($directory);
-            $mark = $directory . '/' . self::MARK;
+        foreach ($store->list(self::DIRECTORY . '/') as $file) {
+            $parts = explode('/', substr($file->path, \strlen(self::DIRECTORY) + 1), 2);
+
+            if (2 === \count($parts)) {
+                $folders[$parts[0]][$parts[1]] = $file->modified;
+            }
+        }
+
+        foreach ($folders as $id => $files) {
+            $mark = $this->directory($id) . '/' . self::MARK;
 
             if (Ulid::isValid($id) && null !== $entries->fetchById($id)) {
-                if (is_file($mark)) {
-                    @unlink($mark);
+                if (isset($files[self::MARK])) {
+                    $store->delete($mark);
                 }
 
                 continue;
             }
 
-            if (!is_file($mark)) {
-                @touch($mark, $now);
+            if (!isset($files[self::MARK])) {
+                $store->write($mark, (string) $now);
 
                 continue;
             }
 
-            if ($now - (int) filemtime($mark) >= self::GRACE) {
-                self::remove($directory);
+            if ($now - self::marked($store->read($mark), $files[self::MARK]) >= self::GRACE) {
+                $store->deletePrefix($this->directory($id) . '/');
                 ++$removed;
             }
         }
@@ -195,25 +219,15 @@ final readonly class FormFiles
 
     private function directory(string $entryId): string
     {
-        return $this->paths->storage(self::DIRECTORY . '/' . $entryId);
+        return self::DIRECTORY . '/' . $entryId;
     }
 
     /**
-     * @return list<string>
+     * When a folder got its mark: the time written into it, else its last
+     * change (marks from before decision 0268 are empty).
      */
-    private static function glob(string $pattern, int $flags = 0): array
+    private static function marked(?string $contents, int $modified): int
     {
-        $found = glob($pattern, $flags);
-
-        return false === $found ? [] : $found;
-    }
-
-    private static function remove(string $directory): void
-    {
-        foreach (self::glob($directory . '/{,.}[!.]*', \GLOB_BRACE) as $file) {
-            @unlink($file);
-        }
-
-        @rmdir($directory);
+        return null !== $contents && 1 === preg_match('/^\d+$/', trim($contents)) ? (int) trim($contents) : $modified;
     }
 }

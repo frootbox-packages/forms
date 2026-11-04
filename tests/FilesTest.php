@@ -70,10 +70,10 @@ final class FilesTest extends FormsTestCase
         self::assertCount(2, $files);
         self::assertMatchesRegularExpression('/^[0-9a-z]{26}\.pdf$/', $files[0]['id']);
         self::assertSame(\strlen(self::PDF), $files[0]['size']);
-        $path = $this->get(FormFiles::class)->path($entry->id, $files[0]['id']);
-        self::assertNotNull($path);
-        self::assertSame($this->get(ProjectPaths::class)->storage('private/forms/' . $entry->id . '/' . $files[0]['id']), $path, 'Below storage/private, never public.');
-        self::assertSame(self::PDF, file_get_contents($path));
+        $path = $this->get(FormFiles::class)->find($entry->id, $files[0]['id']);
+        self::assertSame('private/forms/' . $entry->id . '/' . $files[0]['id'], $path);
+        self::assertFileExists($this->get(ProjectPaths::class)->storage($path), 'Below storage/private, never public.');
+        self::assertSame(self::PDF, (string) $this->get(FormFiles::class)->stream($path));
 
         $this->get(Worker::class)->run(5);
         $mail = $this->transport()->sent()[0]['message'];
@@ -95,8 +95,9 @@ final class FilesTest extends FormsTestCase
         $this->send(['name' => 'Ada'], [$this->file(self::PDF, 'Lebenslauf.pdf')]);
         $entry = $this->get(Entries::class)->fetchOne();
         self::assertNotNull($entry);
-        $path = $this->get(FormFiles::class)->path($entry->id, ($entry->fields[1]['files'] ?? [])[0]['id'] ?? '');
+        $path = $this->get(FormFiles::class)->find($entry->id, ($entry->fields[1]['files'] ?? [])[0]['id'] ?? '');
         self::assertNotNull($path);
+        $path = $this->get(ProjectPaths::class)->storage($path);
         $files = $this->get(FormFiles::class);
         $now = time();
 

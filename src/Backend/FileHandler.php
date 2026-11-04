@@ -16,7 +16,6 @@ use Frootbox\Forms\Website\FormFiles;
 use Psr\Http\Message\ResponseFactoryInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
-use Psr\Http\Message\StreamFactoryInterface;
 use Psr\Http\Server\RequestHandlerInterface;
 
 /**
@@ -31,7 +30,6 @@ final readonly class FileHandler implements RequestHandlerInterface
         private Runner $runner,
         private FormFiles $files,
         private ResponseFactoryInterface $responses,
-        private StreamFactoryInterface $streams,
     ) {}
 
     public function handle(ServerRequestInterface $request): ResponseInterface
@@ -56,7 +54,7 @@ final readonly class FileHandler implements RequestHandlerInterface
             }
         }
 
-        $path = null === $name ? null : $this->files->path($entry->id, $fileId);
+        $path = null === $name ? null : $this->files->find($entry->id, $fileId);
 
         if (null === $path) {
             throw HttpException::notFound($request->getUri()->getPath());
@@ -67,9 +65,9 @@ final readonly class FileHandler implements RequestHandlerInterface
         return $this->responses->createResponse()
             ->withHeader('Content-Type', 'application/octet-stream')
             ->withHeader('Content-Disposition', 'attachment; filename="' . $ascii . '"; filename*=UTF-8\'\'' . rawurlencode($name))
-            ->withHeader('Content-Length', (string) filesize($path))
+            ->withHeader('Content-Length', (string) $this->files->size($path))
             ->withHeader('X-Content-Type-Options', 'nosniff')
             ->withHeader('Cache-Control', 'private, no-store')
-            ->withBody($this->streams->createStreamFromFile($path));
+            ->withBody($this->files->stream($path));
     }
 }
