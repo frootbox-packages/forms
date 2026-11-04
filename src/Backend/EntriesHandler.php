@@ -13,6 +13,7 @@ use Frootbox\Core\Action\Runner;
 use Frootbox\Core\Language\Languages;
 use Frootbox\Forms\Entry\Entry;
 use Frootbox\Forms\Entry\ListEntries;
+use Frootbox\Forms\Entry\PruneEntries;
 use Frootbox\Forms\Form\ShowForm;
 use Frootbox\Forms\FormsSettings;
 use Psr\Http\Message\ResponseInterface;
@@ -21,7 +22,7 @@ use Psr\Http\Server\RequestHandlerInterface;
 
 /**
  * The entries of a form, newest first, with the values of each and the
- * export (decision 0222).
+ * export (decision 0222), from the inbox or the spam folder (decision 0261).
  */
 final readonly class EntriesHandler implements RequestHandlerInterface
 {
@@ -49,7 +50,8 @@ final readonly class EntriesHandler implements RequestHandlerInterface
         $chosen = $request->getQueryParams()['language'] ?? null;
         $language = \is_string($chosen) && $this->languages->has($chosen) ? $this->languages->get($chosen) : $this->languages->default();
         $details = $this->runner->ask(new ShowForm($id));
-        $list = $this->runner->ask(new ListEntries($id, $page, self::PER_PAGE));
+        $spam = 'spam' === ($request->getQueryParams()['folder'] ?? null);
+        $list = $this->runner->ask(new ListEntries($id, $page, self::PER_PAGE, $spam));
 
         return $this->view->render($request, '@frootbox/forms/backend/entries.twig', [
             'form' => $details,
@@ -58,6 +60,8 @@ final readonly class EntriesHandler implements RequestHandlerInterface
             // The language of the form screen, so the tabs back to it keep it.
             'language' => $language,
             'keepDays' => $this->settings->keepDays,
+            'spam' => $spam,
+            'spamDays' => 0 === $this->settings->keepDays ? PruneEntries::SPAM_DAYS : min($this->settings->keepDays, PruneEntries::SPAM_DAYS),
             'entries' => array_map(static fn(Entry $entry): array => [
                 'id' => $entry->id,
                 'createdAt' => $entry->createdAt,
@@ -65,6 +69,7 @@ final readonly class EntriesHandler implements RequestHandlerInterface
                 'summary' => self::summary($entry),
                 'about' => $entry->aboutTitle,
                 'fields' => $entry->fields,
+                'spam' => $entry->spam,
             ], $list->entries),
         ]);
     }

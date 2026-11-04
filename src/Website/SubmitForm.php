@@ -16,26 +16,29 @@ use Frootbox\Core\Action\Schema\Description;
 use Frootbox\Core\Action\Schema\Length;
 use Frootbox\Core\Action\Schema\Pattern;
 use Frootbox\Core\Auth\TooManyAttemptsException;
-use Frootbox\Core\I18n\Translator;
 use Frootbox\Core\Language\Languages;
-use Frootbox\Core\Mail\Message as Mail;
-use Frootbox\Core\Mail\SendMail;
 use Frootbox\Core\Plugin\Plugins;
-use Frootbox\Core\Queue\Queue;
 use Frootbox\Core\Support\Message;
 use Frootbox\Core\Url\Target;
 use Frootbox\Database\Ulid;
+use Frootbox\Forms\Captcha\CaptchaRequest;
+use Frootbox\Forms\Captcha\Captchas;
+use Frootbox\Forms\Captcha\Verdict;
 use Frootbox\Forms\Entry\Entries;
-use Frootbox\Forms\Entry\Entry;
+use Frootbox\Forms\Entry\EntryMails;
 use Frootbox\Forms\Form\FormData;
 use Frootbox\Forms\Form\FormStore;
+use Frootbox\Forms\Spam\SpamRules;
+use Frootbox\Forms\Spam\SpamSubject;
 
 /**
  * A visitor sends a form (decision 0222). Anyone may, so it is guarded
- * against spam without a captcha: a hidden field people leave empty, the
- * signed time the form was shown and at most 5 sendings per address in
- * 10 minutes. Spam gets the answer of a success but is neither kept nor
- * sent. Not undoable: the mails leave the house.
+ * against spam in layers: a hidden field people leave empty and the signed
+ * time the form was shown (spam is dropped), at most 5 sendings per
+ * address in 10 minutes, the captcha of the form and the rules for the
+ * content (decision 0261). What the captcha or a rule finds suspicious is
+ * kept in the spam folder without a mail. Spam gets the answer of a
+ * success. Not undoable: the mails leave the house.
  *
  * @implements Action<SubmitResult>
  */
@@ -43,7 +46,8 @@ use Frootbox\Forms\Form\FormStore;
 final readonly class SubmitForm implements Action
 {
     /**
-     * @param array<mixed> $values
+     * @param array<mixed>      $values
+     * @param array<mixed>|null $captcha
      */
     public function __construct(
         #[Pattern(Ulid::PATTERN)]
@@ -65,9 +69,11 @@ final readonly class SubmitForm implements Action
         #[Length(max: 150)]
         #[Pattern(Target::PATTERN)]
         public ?string $about = null,
+        #[Description('What the captcha of the form gave, its fields "captcha[…]" by name (decision 0261)')]
+        public ?array $captcha = null,
     ) {}
 
-    public function handle(FormStore $store, Languages $languages, FormToken $tokens, Sendings $sendings, Entries $entries, Queue $queue, Translator $translator, CurrentContext $context, FormFiles $files, Plugins $subpages): SubmitResult
+    public function handle(FormStore $store, Languages $languages, FormToken $tokens, Sendings $sendings, Entries $entries, EntryMails $mails, CurrentContext $context, FormFiles $files, Plugins $subpages, Captchas $captchas, SpamRules $rules): SubmitResult
     {
         $action = 'frootbox/forms/form.submit';
         $form = $store->published($this->id) ?? throw new InvalidInputException($action, ['/id' => new Message('The form is not online.')]);
@@ -95,9 +101,11 @@ final readonly class SubmitForm implements Action
                 : new Message('You have sent this form several times. Try again in {minutes} minutes.', ['minutes' => $minutes]));
         }
 
+        $spam = $this->captcha($captchas, $form, $language, $address);
         $sendings->count($this->id, $address);
         $id = Ulid::generate();
         $fields = $submission->fields;
+        $spam ??= $rules->check(new SpamSubject($this->id, $language, $fields));
 
         foreach ($fields as $index => $field) {
             if (isset($submission->uploads[$field['key']])) {
@@ -107,13 +115,42 @@ final readonly class SubmitForm implements Action
         }
 
         [$about, $aboutTitle] = $this->about($subpages, $language);
-        $entry = $entries->insert(['id' => $id, 'formId' => $this->id, 'language' => $language, 'fields' => $fields, 'pageId' => $this->page, 'about' => $about, 'aboutTitle' => $aboutTitle]);
+        $entry = $entries->insert(['id' => $id, 'formId' => $this->id, 'language' => $language, 'fields' => $fields, 'pageId' => $this->page, 'about' => $about, 'aboutTitle' => $aboutTitle, 'spam' => $spam]);
 
-        foreach ($form->recipients as $recipient) {
-            $queue->push(SendMail::of($this->mail($form, $entry, $recipient, $submission->replyTo(), $translator, $languages->default()->code)));
+        if (null === $spam) {
+            $mails->send($form, $entry);
         }
 
         return $result;
+    }
+
+    /**
+     * Checks the captcha of the form: an error for the visitor if wrong,
+     * the reason if suspicious, null if it passed or there is none.
+     */
+    private function captcha(Captchas $captchas, FormData $form, string $language, ?string $address): ?string
+    {
+        $captcha = $captchas->of($form);
+
+        if (null === $captcha) {
+            return null;
+        }
+
+        $answer = [];
+
+        foreach ($this->captcha ?? [] as $name => $value) {
+            if (\is_string($value)) {
+                $answer[(string) $name] = mb_substr($value, 0, 10_000);
+            }
+        }
+
+        $checked = $captchas->provider($captcha)->verify(new CaptchaRequest($this->id, $language, $address), $answer);
+
+        return match ($checked->verdict) {
+            Verdict::Passed => null,
+            Verdict::Wrong => throw new InvalidInputException('frootbox/forms/form.submit', ['/captcha' => $checked->message ?? new Message('The captcha is not solved.')]),
+            Verdict::Suspicious => mb_substr($checked->message->text ?? 'The captcha is not solved.', 0, 300),
+        };
     }
 
     /**
@@ -128,40 +165,5 @@ final readonly class SubmitForm implements Action
         $title = null === $target || $target->isPage() ? null : $subpages->get($target->type)?->title($target->id, $language);
 
         return null === $target || null === $title ? [null, null] : [(string) $target, $title];
-    }
-
-    /**
-     * The entry as a plain text mail in the language of the backend.
-     */
-    private function mail(FormData $form, Entry $entry, string $recipient, ?string $replyTo, Translator $translator, string $default): Mail
-    {
-        $language = $translator->standard();
-        $packages = ['frootbox/forms'];
-        $lines = [];
-
-        $files = false;
-
-        foreach ($entry->fields as $field) {
-            $value = Entry::text($field['value'], $translator->in($language, 'yes', $packages), $translator->in($language, 'no', $packages));
-            $lines[] = $field['label'] . ':' . (str_contains($value, "\n") ? "\n" . $value . "\n" : ' ' . $value);
-            $files = $files || [] !== ($field['files'] ?? []);
-        }
-
-        // Files stay on the server: a mail is no place for a CV (decision 0230).
-        if ($files) {
-            $lines[] = '';
-            $lines[] = $translator->in($language, 'The files are with the entry in the backend.', $packages);
-        }
-
-        $title = $form->text($default)->title;
-
-        return new Mail(
-            [$recipient],
-            null === $entry->aboutTitle
-                ? $translator->in($language, 'New entry: {form}', $packages, ['form' => $title])
-                : $translator->in($language, 'New entry: {form} – {about}', $packages, ['form' => $title, 'about' => $entry->aboutTitle]),
-            implode("\n", $lines) . "\n",
-            $replyTo,
-        );
     }
 }

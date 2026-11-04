@@ -1,6 +1,6 @@
 {
     "name": "frootbox/forms",
-    "description": "Forms for the Frootbox CMS: build forms from field types, send entries by mail through the queue, keep them in the backend, spam protection without a captcha",
+    "description": "Forms for the Frootbox CMS: build forms from field types, send entries by mail through the queue, keep them in the backend, spam protection with captchas of your choice and a spam folder",
     "type": "frootbox-extension",
     "license": "MIT",
     "keywords": [

@@ -87,6 +87,17 @@ query: [fbForm, fbFormError]
       </div>
       {% endif %}
     {% endfor %}
+    {% if f.captcha %}
+      {#- A captcha of another provider loads only after consent (decisions 0224, 0261). -#}
+      {% if f.captcha.service %}
+      <div class="forms__field forms__field--captcha" data-forms-field="captcha">
+        {{ external(f.captcha.service, f.captcha.html, {title: f.captcha.title ?: t('Spam protection')}) }}
+        <p class="forms__error" id="form-{{ f.id }}-captcha-error" data-forms-error hidden></p>
+      </div>
+      {% else %}
+      {{ f.captcha.html|raw }}
+      {% endif %}
+    {% endif %}
     <div class="forms__actions">
       <button type="submit" class="forms__button">{{ f.button ?: t('Send') }}</button>
     </div>

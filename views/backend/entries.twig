@@ -2,7 +2,8 @@
 {% extends '@backend/layout.twig' %}
 {% import '@backend/ui.twig' as ui %}
 {% set heading = title ?: t('Without a title') %}
-{% set self = path('frootbox.forms.entries', {id: form.id}) ~ '?language=' ~ language.code %}
+{% set inbox = path('frootbox.forms.entries', {id: form.id}) ~ '?language=' ~ language.code %}
+{% set self = inbox ~ (spam ? '&folder=spam' : '') %}
 {% set back = path('frootbox.forms.forms.show', {id: form.id}) ~ '?language=' ~ language.code %}
 
 {% block title %}{{ t('Entries') }} · {{ heading }}{% endblock %}
@@ -15,16 +16,29 @@
     <fb-tab-panels label="{{ t('Parts of the form') }}">
         <section id="entries" data-count="{{ list.total }}">
             <h2>{{ icon('inbox') }}{{ t('Entries') }}</h2>
+            {#- The inbox and the spam folder (decision 0261). -#}
+            {{ ui.segmented(t('Folders'), [
+                {label: t('Inbox') ~ ' (' ~ list.inbox ~ ')', href: inbox, current: not spam},
+                {label: t('Spam') ~ ' (' ~ list.spam ~ ')', href: inbox ~ '&folder=spam', current: spam},
+            ]) }}
             <div class="fb-cluster">
                 <div class="fb-stack fb-stack--sm">
                     <p class="fb-heading-4" id="entries-title" tabindex="-1" data-fb-focus>{{ t(['{count} entry', '{count} entries'], {count: list.total}) }}</p>
+                    {% if spam %}
+                    <p class="fb-muted">{{ t(['What looks like spam comes here without a mail. It is deleted after one day.', 'What looks like spam comes here without a mail. It is deleted after {count} days.'], {count: spamDays}) }}</p>
+                    {% else %}
                     <p class="fb-muted">{{ keepDays > 0 ? t(['Entries are deleted after one day.', 'Entries are deleted after {count} days.'], {count: keepDays}) : t('Entries stay until you delete them.') }}</p>
+                    {% endif %}
                 </div>
-                {% if list.total > 0 %}{{ ui.button({label: t('Export as CSV'), href: path('frootbox.forms.entries.export', {id: form.id}), variant: 'outline', icon: 'file', attrs: {download: ''}}) }}{% endif %}
+                {% if list.total > 0 and not spam %}{{ ui.button({label: t('Export as CSV'), href: path('frootbox.forms.entries.export', {id: form.id}), variant: 'outline', icon: 'file', attrs: {download: ''}}) }}{% endif %}
             </div>
             {% if entries is empty %}
             <div class="fb-card fb-card--padded">
+                {% if spam %}
+                {{ ui.empty({icon: 'shield', title: t('No spam'), text: t('What the spam protection holds back appears here.')}) }}
+                {% else %}
                 {{ ui.empty({icon: 'inbox', title: t('No entries yet'), text: t('What visitors send with this form appears here.')}) }}
+                {% endif %}
             </div>
             {% else %}
             <div class="fb-stack">
@@ -32,6 +46,14 @@
             <details class="fb-card fb-disclosure"{% if loop.first and list.page == 1 %} open{% endif %}>
                 <summary class="fb-disclosure__summary"><span>{{ ui.time(entry.createdAt) }}</span>{% if entry.summary %}<span class="fb-muted">{{ entry.summary }}</span>{% endif %}</summary>
                 <ul lang="{{ entry.language }}">
+                    {% if entry.spam %}
+                    <li class="fb-list__item">
+                        <span class="fb-list__main">
+                            <span class="fb-list__meta">{{ t('Why it looks like spam') }}</span>
+                            <span lang="{{ fb.language }}">{{ t(entry.spam) }}</span>
+                        </span>
+                    </li>
+                    {% endif %}
                     {% if entry.about %}
                     <li class="fb-list__item">
                         <span class="fb-list__main">
@@ -52,6 +74,11 @@
                         </span>
                     </li>
                     {%- endfor %}
+                    {% if entry.spam and can('frootbox/forms/entry.release') %}
+                    <li class="fb-list__item fb-cluster">
+                        {{ ui.button({label: t('Not spam'), variant: 'outline', small: true, icon: 'inbox', attrs: {commandfor: 'entry-release', command: 'show-modal', 'data-fb-fill': {'ids[]': entry.id}|json_encode}}) }}
+                    </li>
+                    {% endif %}
                     {% if can('frootbox/forms/entry.delete') %}
                     <li class="fb-list__item">
                         {{ ui.button({label: t('Delete the entry'), variant: 'danger', small: true, icon: 'trash', attrs: {commandfor: 'entry-delete', command: 'show-modal', 'data-fb-fill': {'ids[]': entry.id}|json_encode}}) }}
@@ -73,8 +100,27 @@
         <a href="{{ back }}#texts">{{ icon('type') }}<span>{{ t('Texts') }}</span></a>
         <a href="{{ back }}#fields" data-count="{{ form.current.fields|length }}">{{ icon('list') }}<span>{{ t('Fields') }}</span></a>
         <a href="{{ back }}#recipients">{{ icon('mail') }}<span>{{ t('Recipients') }}</span></a>
+        <a href="{{ back }}#spam">{{ icon('shield') }}<span>{{ t('Spam protection') }}</span></a>
         {% if can('frootbox/forms/form.delete') %}<a href="{{ back }}#more">{{ icon('settings') }}<span>{{ t('More') }}</span></a>{% endif %}
     </fb-tab-panels>
+
+    {% if can('frootbox/forms/entry.release') %}
+    <dialog class="fb-dialog" id="entry-release" aria-labelledby="entry-release-title">
+        <fb-form action="frootbox/forms/entry.release" refresh="form-entries" done="{{ t('The entry is in the inbox.') }}">
+            <form novalidate>
+                <input type="hidden" name="ids[]">
+                <div class="fb-dialog__body">
+                    <h2 class="fb-dialog__title" id="entry-release-title">{{ t('Not spam?') }}</h2>
+                    <p>{{ t('The entry moves to the inbox and goes to the recipients by mail now.') }}</p>
+                </div>
+                <div class="fb-dialog__actions">
+                    {{ ui.button({label: t('Cancel'), variant: 'outline', attrs: {commandfor: 'entry-release', command: 'close', autofocus: true}}) }}
+                    {{ ui.button({label: t('Move to the inbox'), type: 'submit'}) }}
+                </div>
+            </form>
+        </fb-form>
+    </dialog>
+    {% endif %}
 
     {% if can('frootbox/forms/entry.delete') %}
     <dialog class="fb-dialog" id="entry-delete" aria-labelledby="entry-delete-title">

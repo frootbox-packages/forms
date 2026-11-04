@@ -26,10 +26,12 @@ final readonly class PruneOldEntries
 
     public function __invoke(ScheduleRan $event): void
     {
-        $before = PruneEntries::before($this->settings, $event->now);
+        foreach (PruneEntries::where($this->settings, $event->now) as $where) {
+            if ($this->entries->count($where) > 0) {
+                $this->runner->run(new PruneEntries(), Context::system());
 
-        if (null !== $before && $this->entries->count(['createdAt <' => $before]) > 0) {
-            $this->runner->run(new PruneEntries(), Context::system());
+                return;
+            }
         }
     }
 }

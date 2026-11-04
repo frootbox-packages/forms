@@ -3,7 +3,8 @@
 Forms for the Frootbox CMS: build forms from field types in the
 backend, show them with the block **Form** (`frootbox/forms/Form`) on
 any page, keep the entries and mail them to recipients through the
-queue. Spam protection works without a captcha.
+queue. Spam protection comes in layers: invisible checks, a captcha
+of your choice, rules for the content and a spam folder.
 
 ## Field types
 
@@ -56,19 +57,78 @@ without it leads back to the page with `?fbForm=<id>` or
 
 ## Spam protection
 
+Every form has three invisible checks; what fails them gets the answer
+of a success but is neither kept nor sent:
+
 - a hidden field that people leave empty,
 - the time the form was shown, signed with `APP_SECRET`: sent within
   3 seconds counts as a bot,
 - at most 5 entries per address and form in 10 minutes, counted with a
   keyed hash of the address.
 
-Spam gets the answer of a success but is neither kept nor sent.
+Then the captcha of the form and the rules for the content check the
+entry. A captcha may find it **wrong** (the visitor sees an error, e.g.
+a wrong sum) or **suspicious**; a suspicious entry and one a rule
+finds go to the spam folder, without a mail. In the backend it moves
+back to the inbox with `frootbox/forms/entry.release`, which mails it
+then. Spam is deleted after 30 days.
+
+Two captchas come with the module:
+
+- `frootbox/forms/proof-of-work`, the default: invisible. When the
+  visitor enters the form, the browser fetches a task from
+  `/_forms/proof/<id>` and searches the number up to 200,000 whose
+  SHA-256 with the salt gives the hash of the task. A task is signed,
+  valid for an hour and counts once. Without JavaScript the entry goes
+  to the spam folder.
+- `frootbox/forms/math`: a sum to solve, also without JavaScript.
+
+Each form chooses one in the tab **Spam protection**, or none, or the
+standard of the website (setting `captcha`).
+
+### A captcha of your own
+
+An extension registers a captcha with a provider from the container:
+
+```php
+$registry->add(ExternalService::class, new ExternalService(
+    'acme/captcha/turnstile', 'Cloudflare Turnstile', 'Cloudflare, Inc.',
+    'https://www.cloudflare.com/privacypolicy/',
+));
+$registry->add(Captcha::class, new Captcha(
+    'acme/captcha/turnstile', 'Cloudflare Turnstile', TurnstileCaptcha::class,
+    service: 'acme/captcha/turnstile',
+    description: 'A check by Cloudflare, loaded after consent.',
+));
+```
+
+`TurnstileCaptcha` implements `Frootbox\Forms\Captcha\CaptchaProvider`:
+`widget()` returns the markup inside the form, `verify()` checks what
+came back in fields named `captcha[…]` and returns
+`CaptchaResult::passed()`, `::wrong($message)` or
+`::suspicious($reason)`. With a `service` the markup sits behind
+`external()` of the core and loads only after consent; without
+consent the form cannot be sent, so `verify()` returns `wrong()` with
+a hint.
+
+### Rules for the content
+
+Two rules come with the module: more links than the setting `maxLinks`
+(default 3) and a word of the setting `spamWords` (separated by commas).
+An extension adds one with
+`$registry->add(SpamChecks::class, new SpamChecks(AcmeCheck::class))`;
+`AcmeCheck` implements `Frootbox\Forms\Spam\SpamCheck` and returns the
+reason in English, or null.
 
 ## Settings
 
-`keepDays` (default 180, 0 keeps entries until someone deletes them):
-older entries are deleted when the scheduler runs. Set it in the
-backend or in `config/extensions/frootbox/forms.yaml`.
+- `keepDays` (default 180, 0 keeps entries until someone deletes them):
+  older entries are deleted when the scheduler runs.
+- `captcha` (default `frootbox/forms/proof-of-work`): the captcha of
+  forms that choose none, a name or `none`.
+- `maxLinks` (default 3) and `spamWords` (empty): rules for the content.
+
+Set them in the backend or in `config/extensions/frootbox/forms.yaml`.
 
 ## Mail
 

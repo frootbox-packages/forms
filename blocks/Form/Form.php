@@ -14,6 +14,8 @@ use Frootbox\Core\Language\Languages;
 use Frootbox\Core\Routing\Router;
 use Frootbox\Core\Url\Target;
 use Frootbox\Core\Url\Urls;
+use Frootbox\Forms\Captcha\CaptchaRequest;
+use Frootbox\Forms\Captcha\Captchas;
 use Frootbox\Forms\Form\Field;
 use Frootbox\Forms\Form\FieldType;
 use Frootbox\Forms\Form\FormStore;
@@ -33,6 +35,7 @@ final readonly class Form implements BlockController
         private Router $router,
         private Urls $urls,
         private Languages $languages,
+        private Captchas $captchas,
     ) {}
 
     public function data(BlockContext $context): array
@@ -47,6 +50,8 @@ final readonly class Form implements BlockController
         $language = $form->language($context->contentLanguage) ?? $context->contentLanguage;
         $text = $form->text($language);
         $page = null !== $context->target && $context->target->isPage() ? $context->target->id : null;
+        $captcha = $this->captchas->of($form);
+        $widget = null === $captcha ? null : $this->captchas->provider($captcha)->widget(new CaptchaRequest($id, $language));
 
         return [
             'form' => [
@@ -68,6 +73,8 @@ final readonly class Form implements BlockController
                 'accept' => FormFiles::ACCEPT,
                 'most' => FormFiles::MOST,
                 'maxMb' => FormFiles::MAX_MB,
+                // The captcha of the form; one of another provider loads after consent (decision 0261).
+                'captcha' => null === $widget ? null : ['html' => $widget->html, 'service' => $widget->service ?? $captcha->service, 'title' => $widget->title],
                 'fields' => array_map(fn(Field $field): array => [
                     'key' => $field->key,
                     'type' => $field->type->value,

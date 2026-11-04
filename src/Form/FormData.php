@@ -10,7 +10,8 @@ namespace Frootbox\Forms\Form;
 
 /**
  * What a form is, as stored in its draft or published version: texts by
- * language, who gets the entries by mail and the fields in their order.
+ * language, who gets the entries by mail, the fields in their order and
+ * the captcha (decision 0261).
  */
 final readonly class FormData
 {
@@ -23,6 +24,8 @@ final readonly class FormData
         public array $translations = [],
         public array $recipients = [],
         public array $fields = [],
+        /** A captcha by name, "none" for none, null for the standard of the website */
+        public ?string $captcha = null,
     ) {}
 
     /**
@@ -56,10 +59,11 @@ final readonly class FormData
      * @param array<string, FormText>|null $translations
      * @param list<string>|null            $recipients
      * @param list<Field>|null             $fields
+     * @param string|false|null            $captcha false keeps it, null is the standard
      */
-    public function with(?array $translations = null, ?array $recipients = null, ?array $fields = null): self
+    public function with(?array $translations = null, ?array $recipients = null, ?array $fields = null, string|false|null $captcha = false): self
     {
-        return new self($translations ?? $this->translations, $recipients ?? $this->recipients, $fields ?? $this->fields);
+        return new self($translations ?? $this->translations, $recipients ?? $this->recipients, $fields ?? $this->fields, false === $captcha ? $this->captcha : $captcha);
     }
 
     /**
@@ -87,18 +91,21 @@ final readonly class FormData
             $translations,
             \is_array($data['recipients'] ?? null) ? array_values(array_filter($data['recipients'], \is_string(...))) : [],
             $fields,
+            \is_string($data['captcha'] ?? null) && '' !== $data['captcha'] ? $data['captcha'] : null,
         );
     }
 
     /**
-     * @return array{translations: array<string, array{title: string, button: string, success: string}>, recipients: list<string>, fields: list<array<string, mixed>>}
+     * @return array{translations: array<string, array{title: string, button: string, success: string}>, recipients: list<string>, fields: list<array<string, mixed>>, captcha?: string}
      */
     public function toArray(): array
     {
-        return [
+        $data = [
             'translations' => array_map(static fn(FormText $text): array => $text->toArray(), $this->translations),
             'recipients' => $this->recipients,
             'fields' => array_map(static fn(Field $field): array => $field->toArray(), $this->fields),
         ];
+
+        return null === $this->captcha ? $data : [...$data, 'captcha' => $this->captcha];
     }
 }

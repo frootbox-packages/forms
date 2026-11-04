@@ -23,7 +23,7 @@ read the [privacy policy].". Without brackets the link follows the
 label. Entries and mails show the label without the brackets.
 
 The screen of a form has tabs: **Entries** with their number,
-**Texts**, **Fields**, **Recipients** and **More** to delete it. A dot on a tab shows that something there is
+**Texts**, **Fields**, **Recipients**, **Spam protection** and **More** to delete it. A dot on a tab shows that something there is
 not saved yet. Choose the language at the top next to the status; it
 holds for all tabs.
 
@@ -58,6 +58,24 @@ shows under **Regarding** where it came from.
 
 ## Spam
 
-Forms need no captcha. A field people never see, the time it takes to
-fill in a form and a limit of five entries in ten minutes keep most
-bots out. What looks like spam is neither kept nor sent.
+A field people never see, the time it takes to fill in a form and a
+limit of five entries in ten minutes protect every form. What fails
+them is neither kept nor sent.
+
+On top comes a **captcha** you choose in the tab **Spam protection**:
+
+- **Proof of work**, the standard: invisible. The browser of the
+  visitor solves a task for a moment before the form is sent. Whoever
+  has no JavaScript lands in the spam folder.
+- **Sum to solve**: visitors solve a small sum, also without
+  JavaScript.
+- **No captcha**, or the **standard of the website** from the settings
+  of the forms.
+
+Other providers such as reCAPTCHA come with modules of their own. They
+load only once the visitor agrees.
+
+What looks like spam, e.g. too many links or a word of the **words of
+spam** in the settings, goes to the folder **Spam** under **Entries**
+without a mail. It says why. With **Not spam** you move an entry to the
+inbox, and the mail goes out then. Spam is deleted after 30 days.

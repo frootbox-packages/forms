@@ -23,7 +23,7 @@ Ohne Klammern folgt der Link der Beschriftung. In Einsendungen und Mails
 steht die Beschriftung ohne Klammern.
 
 Der Bildschirm eines Formulars hat Reiter: **Einsendungen** mit ihrer
-Zahl, **Texte**, **Felder**, **Empfänger** und **Weiteres** zum Löschen. Ein Punkt am Reiter zeigt,
+Zahl, **Texte**, **Felder**, **Empfänger**, **Spam-Schutz** und **Weiteres** zum Löschen. Ein Punkt am Reiter zeigt,
 dass dort etwas noch nicht gespeichert ist. Die Sprache wählst Du oben
 neben dem Status, sie gilt für alle Reiter.
 
@@ -60,7 +60,25 @@ Eintrags, zeigt die Einsendung unter **Betrifft**, woher sie kam.
 
 ## Spam
 
-Formulare brauchen kein Captcha. Ein Feld, das Menschen nie sehen, die
-Zeit zum Ausfüllen und höchstens fünf Einsendungen in zehn Minuten
-halten die meisten Bots fern. Was nach Spam aussieht, wird weder
-gespeichert noch verschickt.
+Jedes Formular schützen ein Feld, das Menschen nie sehen, die Zeit zum
+Ausfüllen und höchstens fünf Einsendungen in zehn Minuten. Was daran
+scheitert, wird weder gespeichert noch verschickt.
+
+Dazu kommt ein **Captcha**, das Du im Reiter **Spam-Schutz** wählst:
+
+- **Rechenbeweis**, der Standard: unsichtbar. Der Browser des Besuchers
+  löst kurz eine Aufgabe, bevor das Formular abgeht. Wer kein JavaScript
+  hat, landet im Spam-Ordner.
+- **Rechenaufgabe**: Besucher rechnen eine kleine Aufgabe aus, auch ohne
+  JavaScript.
+- **Kein Captcha**, oder der **Standard der Website** aus den
+  Einstellungen der Formulare.
+
+Andere Anbieter wie reCAPTCHA bringen eigene Module mit. Sie laden erst,
+wenn der Besucher zustimmt.
+
+Was nach Spam aussieht, etwa zu viele Links oder ein Wort aus den
+**Spam-Wörtern** der Einstellungen, kommt ohne Mail in den Ordner
+**Spam** unter **Einsendungen**. Dort steht, warum. Mit **Kein Spam**
+holst Du eine Einsendung in den Eingang, dann geht auch die Mail
+heraus. Spam wird nach 30 Tagen gelöscht.

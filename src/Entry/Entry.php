@@ -29,6 +29,8 @@ final readonly class Entry extends Entity
         public DateTimeImmutable $createdAt,
         public ?string $about = null,
         public ?string $aboutTitle = null,
+        /** Why it is in the spam folder, in English; null in the inbox (decision 0261) */
+        public ?string $spam = null,
     ) {}
 
     /**

@@ -18,6 +18,7 @@ use Frootbox\Core\Page\CreatePage;
 use Frootbox\Core\Page\PageHandler;
 use Frootbox\Core\Tests\Support\FixtureSite;
 use Frootbox\Core\Tests\Support\NotesTestCase;
+use Frootbox\Forms\Captcha\Proofs;
 use Frootbox\Forms\Entry\Entries;
 use Frootbox\Forms\Form\AddField;
 use Frootbox\Forms\Form\CreateForm;
@@ -38,7 +39,7 @@ abstract class FormsTestCase extends NotesTestCase
 
     protected function tables(): array
     {
-        return [Entries::TABLE, Sendings::TABLE];
+        return [Entries::TABLE, Sendings::TABLE, Proofs::TABLE];
     }
 
     protected function environment(): Environment
@@ -55,7 +56,21 @@ abstract class FormsTestCase extends NotesTestCase
 
     protected function config(): array
     {
-        return ['app' => ['name' => 'Testsite', 'url' => 'https://example.org'], 'theme' => 'acme/site', 'languages' => ['de' => ['title' => 'Deutsch'], 'en' => ['title' => 'English']]];
+        return [
+            'app' => ['name' => 'Testsite', 'url' => 'https://example.org'],
+            'theme' => 'acme/site',
+            'languages' => ['de' => ['title' => 'Deutsch'], 'en' => ['title' => 'English']],
+            // The captchas have tests of their own (decision 0261).
+            'extensions' => ['frootbox/forms' => ['captcha' => $this->captcha()]],
+        ];
+    }
+
+    /**
+     * The standard captcha of the website in the test.
+     */
+    protected function captcha(): string
+    {
+        return 'none';
     }
 
     protected function env(): array
@@ -94,11 +109,12 @@ abstract class FormsTestCase extends NotesTestCase
     /**
      * Sends a form as a guest from an address.
      *
-     * @param array<mixed> $values
+     * @param array<mixed>               $values
+     * @param array<string, string>|null $captcha
      */
-    protected function submit(string $id, array $values, ?string $token = null, ?string $website = null, string $address = '192.0.2.10'): SubmitResult
+    protected function submit(string $id, array $values, ?string $token = null, ?string $website = null, string $address = '192.0.2.10', ?array $captcha = null): SubmitResult
     {
-        return $this->runner()->run(new SubmitForm($id, $values, 'de', $token ?? $this->token($id), $website), Context::guest(address: $address));
+        return $this->runner()->run(new SubmitForm($id, $values, 'de', $token ?? $this->token($id), $website, captcha: $captcha), Context::guest(address: $address));
     }
 
     /**

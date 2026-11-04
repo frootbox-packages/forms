@@ -93,7 +93,7 @@ final readonly class FormStore
             $published?->version,
             null === $draft ? null : $this->load($draft->data),
             null === $published ? null : $this->load($published->data),
-            $this->entries->count(['formId' => $id]),
+            $this->entries->count(['formId' => $id, 'spam' => null]),
         );
     }
 

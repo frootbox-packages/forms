@@ -111,6 +111,32 @@
             </div>
         </section>
 
+        {#- The captcha of the form (decision 0261). -#}
+        <section id="spam">
+            <h2>{{ icon('shield') }}{{ t('Spam protection') }}</h2>
+            <div class="fb-card fb-card--padded">
+                <fb-form action="frootbox/forms/form.update" refresh="{{ refresh }}" done="{{ t('Saved') }}">
+                    <form class="fb-stack" novalidate>
+                        <input type="hidden" name="id" value="{{ form.id }}">
+                        <p class="fb-muted">{{ t('A hidden field, the time it takes to fill in and a limit per address protect every form. A captcha adds to it. What looks like spam lands in the spam folder of the entries, without a mail.') }}</p>
+                        <fieldset class="fb-fieldset">
+                            <legend class="fb-fieldset__legend">{{ t('Captcha') }}</legend>
+                            <div class="fb-stack fb-stack--sm">
+                                {%- set chosen = data.captcha ?? 'default' -%}
+                                {%- set standard = captchas.standard == 'none' ? t('No captcha') : t((captchas.captchas|filter(c => c.name == captchas.standard)|first).title ?? captchas.standard) %}
+                                {{ ui.choice({title: t('Standard of the website'), text: t('Now: {captcha}. The settings of the forms decide.', {captcha: standard}), name: 'captcha', id: 'form-captcha-default', value: 'default', checked: chosen == 'default', attrs: {disabled: not editable}}) }}
+                                {%- for captcha in captchas.captchas %}
+                                {{ ui.choice({title: t(captcha.title), text: captcha.description ? t(captcha.description) : null, name: 'captcha', id: 'form-captcha-' ~ loop.index, value: captcha.name, checked: chosen == captcha.name, attrs: {disabled: not editable}}) }}
+                                {%- endfor %}
+                                {{ ui.choice({title: t('No captcha'), text: t('Only the hidden field, the time and the limit per address.'), name: 'captcha', id: 'form-captcha-none', value: 'none', checked: chosen == 'none', attrs: {disabled: not editable}}) }}
+                            </div>
+                        </fieldset>
+                        {% if editable %}<div class="fb-form__actions">{{ ui.button({label: t('Save'), type: 'submit', saves: true}) }}</div>{% endif %}
+                    </form>
+                </fb-form>
+            </div>
+        </section>
+
         {% if can('frootbox/forms/form.delete') %}
         <section id="more">
             <h2>{{ icon('settings') }}{{ t('More') }}</h2>

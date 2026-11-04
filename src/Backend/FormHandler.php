@@ -14,6 +14,7 @@ use Frootbox\Core\Action\AccessDeniedException;
 use Frootbox\Core\Action\Runner;
 use Frootbox\Core\Language\Languages;
 use Frootbox\Core\Page\ShowPageTree;
+use Frootbox\Forms\Captcha\ListCaptchas;
 use Frootbox\Forms\Form\Field;
 use Frootbox\Forms\Form\FieldType;
 use Frootbox\Forms\Form\ShowForm;
@@ -70,6 +71,8 @@ final readonly class FormHandler implements RequestHandlerInterface
             'translation' => $data->translations[$code] ?? null,
             'source' => $data->text($this->languages->default()->code),
             'pages' => $pages,
+            // The choice of the tab "Spam protection" (decision 0261).
+            'captchas' => $this->runner->ask(new ListCaptchas()),
             'types' => array_map(static fn(FieldType $type): array => ['value' => $type->value, 'label' => $type->title()], FieldType::cases()),
             'fields' => array_map(static fn(Field $field): array => [
                 'key' => $field->key,

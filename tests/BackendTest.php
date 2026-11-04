@@ -47,7 +47,8 @@ final class BackendTest extends BackendTestCase
 
     protected function config(): array
     {
-        return ['languages' => ['de' => ['title' => 'Deutsch'], 'en' => ['title' => 'English']]];
+        // Without a captcha, so the entries of the tests reach the inbox (decision 0261).
+        return ['languages' => ['de' => ['title' => 'Deutsch'], 'en' => ['title' => 'English']], 'extensions' => ['frootbox/forms' => ['captcha' => 'none']]];
     }
 
     public function testEditorsBuildAndPublishForms(): void

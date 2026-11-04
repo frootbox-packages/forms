@@ -19,7 +19,7 @@ final readonly class FormDetails
         public ?int $version,
         public ?FormData $draft,
         public ?FormData $published,
-        /** Entries kept for this form */
+        /** Entries kept for this form in the inbox, without spam (decision 0261) */
         public int $entries = 0,
     ) {}
 

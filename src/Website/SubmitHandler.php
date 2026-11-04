@@ -61,6 +61,8 @@ final readonly class SubmitHandler implements RequestHandlerInterface
             'website' => $text('website'),
             'page' => $text('_page'),
             'about' => $text('_about'),
+            // What the captcha gave, in fields "captcha[…]" (decision 0261).
+            'captcha' => \is_array($body['captcha'] ?? null) ? $body['captcha'] : null,
         ], static fn(mixed $value): bool => null !== $value);
 
         try {
