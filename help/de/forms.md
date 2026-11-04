@@ -16,6 +16,12 @@ Beschriftung, auf Wunsch einen Hinweis und bei Auswahlen seine
 Möglichkeiten, eine pro Zeile. Mit den Pfeilen änderst Du die
 Reihenfolge.
 
+Eine Zustimmung verlinkst Du unter **Link** mit einer Seite, meist der
+Datenschutzerklärung. Setz den Text des Links in der Beschriftung in
+eckige Klammern, etwa „Ich habe die [Datenschutzerklärung] gelesen.“.
+Ohne Klammern folgt der Link der Beschriftung. In Einsendungen und Mails
+steht die Beschriftung ohne Klammern.
+
 Der Bildschirm eines Formulars hat Reiter: **Einsendungen** mit ihrer
 Zahl, **Texte**, **Felder**, **Empfänger** und **Weiteres** zum Löschen. Ein Punkt am Reiter zeigt,
 dass dort etwas noch nicht gespeichert ist. Die Sprache wählst Du oben

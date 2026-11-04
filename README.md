@@ -12,6 +12,13 @@ queue. Spam protection works without a captcha.
 `files`. Each field has a key, a label, a hint and, for choices, options
 by language.
 
+A consent may link to a page, mostly the privacy policy:
+`form.field-add` and `form.field-update` take `link`, a target such as
+`page:01J…` or an address. The text in `[square brackets]` of the label
+becomes the link; without brackets the theme puts a link "Privacy
+policy" after the label. Mails, entries and the export show the label
+without the brackets.
+
 ## Files
 
 A field `files` takes up to 5 files of at most 10 MB each, 20 MB

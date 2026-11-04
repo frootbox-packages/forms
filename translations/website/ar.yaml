@@ -24,3 +24,4 @@
 "The file {name} is too large, at most {max} MB.": "الملف {name} كبير جدًا، الحد الأقصى {max} ميغابايت."
 "The files are too large together, at most {max} MB.": "حجم الملفات معًا كبير جدًا، الحد الأقصى {max} ميغابايت."
 "PDF, Word, OpenDocument, text or images, up to {count} files of at most {max} MB each.": "PDF أو Word أو OpenDocument أو نص أو صور، حتى {count} ملفات بحد أقصى {max} ميغابايت لكل ملف."
+"Privacy policy": "سياسة الخصوصية"

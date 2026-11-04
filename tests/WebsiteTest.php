@@ -8,9 +8,13 @@ declare(strict_types=1);
 
 namespace Frootbox\Forms\Tests;
 
+use Frootbox\Core\Action\InvalidInputException;
+use Frootbox\Core\Page\CreatePage;
 use Frootbox\Core\Page\PublishPages;
 use Frootbox\Forms\Blocks\Form;
 use Frootbox\Forms\Entry\Entries;
+use Frootbox\Forms\Form\PublishForm;
+use Frootbox\Forms\Form\UpdateField;
 use Frootbox\Forms\Website\SubmitHandler;
 use Frootbox\Forms\Website\TokenHandler;
 use Nyholm\Psr7\ServerRequest;
@@ -49,6 +53,27 @@ final class WebsiteTest extends FormsTestCase
         self::assertStringContainsString('Mit * markierte Felder sind Pflicht.', $html, 'The texts of the website in German.');
         self::assertStringContainsString('>Senden</button>', $html);
         self::assertStringContainsString('forms.js', $html);
+    }
+
+    public function testLinksTheConsentToThePrivacyPolicy(): void
+    {
+        $privacy = $this->runner()->run(new CreatePage('acme/base/Page', ['de' => ['title' => 'Datenschutz', 'slug' => 'datenschutz', 'content' => ['fields' => ['heading' => 'Datenschutz']]]], $this->page))->id;
+        $this->runner()->run(new PublishPages([$privacy]));
+        $this->runner()->run(new UpdateField($this->form, 'privacy', translations: ['de' => ['label' => 'Ich habe die [Datenschutzerklärung] gelesen.']], link: 'page:' . $privacy));
+        $this->runner()->run(new PublishForm($this->form));
+
+        self::assertStringContainsString('<span>Ich habe die <a href="/datenschutz" target="_blank" rel="noopener">Datenschutzerklärung</a> gelesen.<span class="forms__required" aria-hidden="true">*</span></span>', $this->html('/'));
+
+        $this->submit($this->form, self::valid());
+        $entry = $this->get(Entries::class)->fetch()->all()[0];
+        self::assertSame('Ich habe die Datenschutzerklärung gelesen.', $entry->fields[3]['label'], 'Mails and entries without the brackets.');
+
+        $this->runner()->run(new UpdateField($this->form, 'privacy', translations: ['de' => ['label' => 'Ich stimme zu.']]));
+        $this->runner()->run(new PublishForm($this->form));
+        self::assertStringContainsString('<span>Ich stimme zu. <a href="/datenschutz" target="_blank" rel="noopener">Datenschutzerklärung</a><span class="forms__required"', $this->html('/'), 'Without brackets the link follows the label; the link stays.');
+
+        $this->expectException(InvalidInputException::class);
+        $this->runner()->run(new UpdateField($this->form, 'name', link: 'page:' . $privacy));
     }
 
     public function testWithoutJavaScriptLeadsBackToThePage(): void

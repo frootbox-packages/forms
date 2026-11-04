@@ -11,6 +11,7 @@ namespace Frootbox\Forms\Form;
 use Frootbox\Core\Action\Action;
 use Frootbox\Core\Action\AsAction;
 use Frootbox\Core\Action\Schema\Description;
+use Frootbox\Core\Action\Schema\Length;
 use Frootbox\Core\Action\Schema\Pattern;
 use Frootbox\Database\Ulid;
 
@@ -35,6 +36,9 @@ final readonly class UpdateField implements Action
         #[Description('A new name of the value; entries sent before keep the old one')]
         #[Pattern(Field::KEY_PATTERN)]
         public ?string $newKey = null,
+        #[Description('Only for consent: where the label links to, a page such as "page:01J…" or an address; empty removes it')]
+        #[Length(max: FormEditor::LINK_MAX)]
+        public ?string $link = null,
     ) {}
 
     public function handle(FormEditor $editor, FormStore $store): FormDetails
@@ -42,12 +46,15 @@ final readonly class UpdateField implements Action
         $action = 'frootbox/forms/form.field-update';
         $current = $store->current($this->id);
         $field = $editor->fieldOf($action, $current, $this->key);
+        $type = $this->type ?? $field->type;
 
         $changed = new Field(
             $this->newKey ?? $field->key,
-            $this->type ?? $field->type,
+            $type,
             $this->required ?? $field->required,
             null === $this->translations ? $field->translations : $editor->fieldTexts($action, $this->translations, $field->translations),
+            // A field that is no longer consent loses its link.
+            $editor->link($action, $type, $this->link ?? (FieldType::Consent === $type ? $field->link : null)),
         );
 
         return $editor->saveDraft($this->id, $editor->replaceField($action, $current, $this->key, $changed));

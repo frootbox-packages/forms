@@ -24,7 +24,34 @@ final readonly class Field
         public FieldType $type,
         public bool $required = false,
         public array $translations = [],
+        /** For consent: where the label links to, e.g. "page:01J…" for the privacy policy (decision 0259). */
+        public ?string $link = null,
     ) {}
+
+    /**
+     * The label in a language without the brackets that mark the link, for
+     * mails, entries and the search.
+     */
+    public function label(string $language): string
+    {
+        return str_replace(['[', ']'], '', $this->text($language)->label);
+    }
+
+    /**
+     * The label in three parts around the text in square brackets that
+     * becomes the link, e.g. "I have read the [privacy policy].". Null
+     * without brackets: then the theme puts a link after the label.
+     *
+     * @return array{string, string, string}|null
+     */
+    public function linkParts(string $language): ?array
+    {
+        if (1 !== preg_match('/^(.*?)\[([^\[\]]+)\](.*)$/su', $this->text($language)->label, $match)) {
+            return null;
+        }
+
+        return [str_replace(['[', ']'], '', $match[1]), $match[2], str_replace(['[', ']'], '', $match[3])];
+    }
 
     /**
      * Consent is always required: without it the form is not sent.
@@ -60,19 +87,26 @@ final readonly class Field
             FieldType::tryFrom(\is_string($data['type'] ?? null) ? $data['type'] : '') ?? FieldType::Text,
             true === ($data['required'] ?? false),
             $translations,
+            \is_string($data['link'] ?? null) && '' !== $data['link'] ? $data['link'] : null,
         );
     }
 
     /**
-     * @return array{key: string, type: string, required: bool, translations: array<string, array{label: string, hint: string, options: list<string>}>}
+     * @return array{key: string, type: string, required: bool, translations: array<string, array{label: string, hint: string, options: list<string>}>, link?: string}
      */
     public function toArray(): array
     {
-        return [
+        $data = [
             'key' => $this->key,
             'type' => $this->type->value,
             'required' => $this->required,
             'translations' => array_map(static fn(FieldText $text): array => $text->toArray(), $this->translations),
         ];
+
+        if (null !== $this->link) {
+            $data['link'] = $this->link;
+        }
+
+        return $data;
     }
 }

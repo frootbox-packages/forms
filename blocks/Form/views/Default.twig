@@ -48,7 +48,16 @@ query: [fbForm, fbFormError]
       <div class="forms__field forms__field--check" data-forms-field="{{ field.key }}">
         <label class="forms__choice">
           <input type="checkbox" id="{{ id }}" name="values[{{ field.key }}]" value="1"{% if field.required %} required{% endif %} aria-describedby="{{ described }}">
-          <span>{{ field.label }}{{ mark }}</span>
+          {#- The link opens in a new tab, so what is typed stays. -#}
+          <span>
+            {%- if field.link and field.linkParts -%}
+              {{ field.linkParts[0] }}<a href="{{ field.link }}" target="_blank" rel="noopener">{{ field.linkParts[1] }}</a>{{ field.linkParts[2] }}
+            {%- elseif field.link -%}
+              {{ field.label }} <a href="{{ field.link }}" target="_blank" rel="noopener">{{ t('Privacy policy') }}</a>
+            {%- else -%}
+              {{ field.label }}
+            {%- endif -%}
+            {{ mark }}</span>
         </label>
         {% if field.hint %}<p class="forms__hint" id="{{ id }}-hint">{{ field.hint }}</p>{% endif %}
         <p class="forms__error" id="{{ id }}-error" data-forms-error hidden></p>

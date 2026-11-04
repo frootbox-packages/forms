@@ -62,7 +62,7 @@ final readonly class ExportHandler implements RequestHandlerInterface
         $columns = [];
 
         foreach ($form->fields as $field) {
-            $columns[$field->key] = $field->text($default)->label;
+            $columns[$field->key] = $field->label($default);
         }
 
         foreach ($entries as $entry) {

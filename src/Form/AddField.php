@@ -11,6 +11,7 @@ namespace Frootbox\Forms\Form;
 use Frootbox\Core\Action\Action;
 use Frootbox\Core\Action\AsAction;
 use Frootbox\Core\Action\Schema\Description;
+use Frootbox\Core\Action\Schema\Length;
 use Frootbox\Core\Action\Schema\Pattern;
 use Frootbox\Core\Action\Schema\Range;
 use Frootbox\Database\Ulid;
@@ -38,6 +39,9 @@ final readonly class AddField implements Action
         #[Description('Where it goes, from 0; left out at the end')]
         #[Range(min: 0)]
         public ?int $position = null,
+        #[Description('Only for consent: where the label links to, a page such as "page:01J…" or an address; the text in [square brackets] of the label becomes the link')]
+        #[Length(max: FormEditor::LINK_MAX)]
+        public ?string $link = null,
     ) {}
 
     public function handle(FormEditor $editor, FormStore $store): FormDetails
@@ -45,6 +49,6 @@ final readonly class AddField implements Action
         $action = 'frootbox/forms/form.field-add';
         $current = $store->current($this->id);
 
-        return $editor->saveDraft($this->id, $editor->addField($action, $current, $this->key, $this->type, $this->required, $editor->fieldTexts($action, $this->translations), $this->position));
+        return $editor->saveDraft($this->id, $editor->addField($action, $current, $this->key, $this->type, $this->required, $editor->fieldTexts($action, $this->translations), $this->position, $this->link));
     }
 }

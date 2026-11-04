@@ -13,6 +13,7 @@ use Frootbox\Core\Language\Languages;
 use Frootbox\Core\Page\Slug;
 use Frootbox\Core\Revision\RevisionStore;
 use Frootbox\Core\Support\Message;
+use Frootbox\Core\Url\Target;
 use Frootbox\Database\EntityNotFoundException;
 use Frootbox\Forms\Entry\Entries;
 
@@ -35,6 +36,8 @@ final readonly class FormEditor
     public const int MAX_RECIPIENTS = 10;
 
     public const int MAX_FIELDS = 50;
+
+    public const int LINK_MAX = 500;
 
     public const int MAX_OPTIONS = 50;
 
@@ -208,8 +211,10 @@ final readonly class FormEditor
      *
      * @throws InvalidInputException
      */
-    public function addField(string $action, FormData $data, ?string $key, FieldType $type, bool $required, array $translations, ?int $position = null): FormData
+    public function addField(string $action, FormData $data, ?string $key, FieldType $type, bool $required, array $translations, ?int $position = null, ?string $link = null): FormData
     {
+        $link = $this->link($action, $type, $link);
+
         if (\count($data->fields) >= self::MAX_FIELDS) {
             throw new InvalidInputException($action, ['/key' => new Message('A form has at most {count} fields.', ['count' => self::MAX_FIELDS])]);
         }
@@ -218,7 +223,7 @@ final readonly class FormEditor
         $this->checkKey($action, $data, $key);
 
         $fields = $data->fields;
-        array_splice($fields, null === $position ? \count($fields) : max(0, min($position, \count($fields))), 0, [new Field($key, $type, $required, $translations)]);
+        array_splice($fields, null === $position ? \count($fields) : max(0, min($position, \count($fields))), 0, [new Field($key, $type, $required, $translations, $link)]);
 
         return $data->with(fields: $fields);
     }
@@ -432,6 +437,31 @@ final readonly class FormEditor
     /**
      * @throws InvalidInputException
      */
+    /**
+     * The link of a consent field (decision 0259): a target such as
+     * "page:01J…" or an address; empty for none. Other fields have none.
+     *
+     * @throws InvalidInputException
+     */
+    public function link(string $action, FieldType $type, ?string $link): ?string
+    {
+        $link = null === $link ? '' : trim($link);
+
+        if ('' === $link) {
+            return null;
+        }
+
+        if (FieldType::Consent !== $type) {
+            throw new InvalidInputException($action, ['/link' => new Message('Only a consent field has a link.')]);
+        }
+
+        if (mb_strlen($link) > self::LINK_MAX || (null === Target::tryParse($link) && 1 !== preg_match('#^(https?://[^\s]+|/[^\s]*)$#i', $link))) {
+            throw new InvalidInputException($action, ['/link' => new Message('must be a page such as "page:01J…" or an address such as "https://example.org/privacy".')]);
+        }
+
+        return $link;
+    }
+
     private function checkKey(string $action, FormData $data, string $key, string $at = '/key'): void
     {
         if (1 !== preg_match('/' . Field::KEY_PATTERN . '/', $key)) {

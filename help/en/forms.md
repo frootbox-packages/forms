@@ -17,6 +17,11 @@ number, a date, a drop-down list, one of several, several of several, a
 checkbox, a consent or files. Each field has a label, a hint if you like and,
 for choices, its options, one per line. Arrows change the order.
 
+Link a consent to a page under **Link**, mostly the privacy policy. Put
+the text of the link in square brackets in the label, such as "I have
+read the [privacy policy].". Without brackets the link follows the
+label. Entries and mails show the label without the brackets.
+
 The screen of a form has tabs: **Entries** with their number,
 **Texts**, **Fields**, **Recipients** and **More** to delete it. A dot on a tab shows that something there is
 not saved yet. Choose the language at the top next to the status; it

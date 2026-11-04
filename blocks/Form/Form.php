@@ -12,6 +12,7 @@ use Frootbox\Core\Component\BlockContext;
 use Frootbox\Core\Component\BlockController;
 use Frootbox\Core\Language\Languages;
 use Frootbox\Core\Routing\Router;
+use Frootbox\Core\Url\Target;
 use Frootbox\Core\Url\Urls;
 use Frootbox\Forms\Form\Field;
 use Frootbox\Forms\Form\FieldType;
@@ -67,12 +68,15 @@ final readonly class Form implements BlockController
                 'accept' => FormFiles::ACCEPT,
                 'most' => FormFiles::MOST,
                 'maxMb' => FormFiles::MAX_MB,
-                'fields' => array_map(static fn(Field $field): array => [
+                'fields' => array_map(fn(Field $field): array => [
                     'key' => $field->key,
                     'type' => $field->type->value,
                     'choice' => $field->type->hasOptions(),
                     'required' => $field->isRequired(),
-                    'label' => $field->text($language)->label,
+                    'label' => $field->label($language),
+                    // For consent, a link to the privacy policy (decision 0259); none if the page is not published.
+                    'link' => null === $field->link ? null : $this->link($field->link, $context->language),
+                    'linkParts' => $field->linkParts($language),
                     'hint' => $field->text($language)->hint,
                     'options' => $field->text($language)->options,
                     'input' => match ($field->type) {
@@ -93,5 +97,12 @@ final readonly class Form implements BlockController
             'sent' => $id === $context->query('fbForm'),
             'failed' => $id === $context->query('fbFormError'),
         ];
+    }
+
+    private function link(string $link, string $language): ?string
+    {
+        $target = Target::tryParse($link);
+
+        return null === $target ? $link : $this->urls->href($target, $language);
     }
 }

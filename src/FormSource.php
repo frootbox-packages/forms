@@ -50,7 +50,7 @@ final readonly class FormSource implements SearchSource
                 yield new SearchEntry(
                     item: $id,
                     title: '' === $text->title ? $id : $text->title,
-                    text: implode("\n", array_map(static fn(Field $field): string => $field->text($language)->label, $data->fields)),
+                    text: implode("\n", array_map(static fn(Field $field): string => $field->label($language), $data->fields)),
                     permission: 'frootbox/forms/form.show',
                     language: $language,
                 );

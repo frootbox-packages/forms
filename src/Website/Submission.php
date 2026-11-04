@@ -38,7 +38,7 @@ final class Submission
             $value = $this->value($field, $field->text($language)->options, $values[$field->key] ?? null);
 
             if (null !== $value) {
-                $this->fields[] = ['key' => $field->key, 'label' => $field->text($language)->label, 'type' => $field->type->value, 'value' => $value];
+                $this->fields[] = ['key' => $field->key, 'label' => $field->label($language), 'type' => $field->type->value, 'value' => $value];
             }
         }
     }

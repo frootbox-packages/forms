@@ -138,6 +138,7 @@
                     {{ ui.field({label: t('Hint'), name: 'translations.' ~ code ~ '.hint', id: dialog ~ '-hint', optional: true, hint: t('A short help below the field.'), attrs: {lang: code, dir: dir, maxlength: 500}}) }}
                     {{ ui.field({label: t('Options'), name: 'translations.' ~ code ~ '.options', id: dialog ~ '-options', multiline: true, optional: true, hint: t('Only for a drop-down list, one of several and several of several: one option per line.'), attrs: {lang: code, dir: dir, rows: 4, 'data-type': 'lines'}}) }}
                     {{ ui.check({label: t('Required'), name: 'required', id: dialog ~ '-required', hint: t('Visitors must fill it in. Consent is always required.')}) }}
+                    {% if pages %}{{ ui.select({label: t('Link'), name: 'link', id: dialog ~ '-link', options: [{value: '', label: t('No link')}]|merge(pages), hint: t('Only for consent, e.g. the privacy policy. Put the text of the link in [square brackets] in the label, else the link follows the label.')}) }}{% endif %}
                 </div>
                 <div class="fb-dialog__actions">
                     {{ ui.button({label: t('Cancel'), variant: 'outline', attrs: {commandfor: dialog, command: 'close'}}) }}

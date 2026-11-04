@@ -8,9 +8,12 @@ declare(strict_types=1);
 
 namespace Frootbox\Forms\Backend;
 
+use Frootbox\Backend\Http\Pages\PageTree;
 use Frootbox\Backend\View\BackendView;
+use Frootbox\Core\Action\AccessDeniedException;
 use Frootbox\Core\Action\Runner;
 use Frootbox\Core\Language\Languages;
+use Frootbox\Core\Page\ShowPageTree;
 use Frootbox\Forms\Form\Field;
 use Frootbox\Forms\Form\FieldType;
 use Frootbox\Forms\Form\ShowForm;
@@ -51,6 +54,13 @@ final readonly class FormHandler implements RequestHandlerInterface
         $data = $details->current();
         $code = $language->code;
 
+        // The pages for the link of a consent field (decision 0259).
+        try {
+            $pages = array_map(static fn(array $option): array => ['value' => 'page:' . $option['value'], 'label' => $option['label']], PageTree::of($this->runner->ask(new ShowPageTree()), $this->languages)->options());
+        } catch (AccessDeniedException) {
+            $pages = [];
+        }
+
         return $this->view->render($request, '@frootbox/forms/backend/form.twig', [
             'form' => $details,
             'data' => $data,
@@ -59,6 +69,7 @@ final readonly class FormHandler implements RequestHandlerInterface
             'languages' => $this->languages->all(),
             'translation' => $data->translations[$code] ?? null,
             'source' => $data->text($this->languages->default()->code),
+            'pages' => $pages,
             'types' => array_map(static fn(FieldType $type): array => ['value' => $type->value, 'label' => $type->title()], FieldType::cases()),
             'fields' => array_map(static fn(Field $field): array => [
                 'key' => $field->key,
@@ -69,6 +80,7 @@ final readonly class FormHandler implements RequestHandlerInterface
                     'key' => $field->key,
                     'type' => $field->type->value,
                     'required' => $field->required,
+                    'link' => $field->link ?? '',
                     'translations.' . $code . '.label' => $field->translations[$code]->label ?? '',
                     'translations.' . $code . '.hint' => $field->translations[$code]->hint ?? '',
                     'translations.' . $code . '.options' => implode("\n", $field->translations[$code]->options ?? []),
