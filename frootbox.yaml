@@ -1,3 +1,5 @@
 title: Forms
 description: Forms built from field types, entries by mail and in the backend, spam protection with captchas of your choice and a spam folder
 extension: Frootbox\Forms\FormsExtension
+# For the extension directory (decision 0282).
+icon: icon.svg
