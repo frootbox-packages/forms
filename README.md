@@ -148,6 +148,12 @@ Each recipient gets a plain text mail through the job `mail.send` of
 the core; answering it goes to the first email field. The transport
 comes from `MAILER_DSN` in `.env`.
 
+## Source and issues
+
+This package is developed in the [Frootbox monorepo](https://github.com/Frootbox/frootbox)
+and mirrored here read-only. Questions, bugs and ideas go there, see the
+[documentation](https://github.com/Frootbox/frootbox/tree/main/documentation).
+
 ## License
 
 MIT
