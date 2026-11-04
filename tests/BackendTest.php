@@ -100,6 +100,8 @@ final class BackendTest extends BackendTestCase
         self::assertStringContainsString('Zwei<br />' . "\n" . 'Zeilen', $entries);
         self::assertStringContainsString('Einsendungen werden nach 180 Tagen gelöscht.', $entries);
         self::assertStringContainsString('<fb-form action="frootbox/forms/entry.delete"', $entries);
+        self::assertMatchesRegularExpression('/<button [^>]*data-fb-fill="[^"]*" data-fb-commandfor="entry-delete">/', $entries, 'A dialog with values opens through the script only.');
+        self::assertStringNotContainsString('commandfor="entry-delete" command="show-modal"', $entries);
         self::assertStringContainsString('<h1 class="fb-heading-1" tabindex="-1">Kontakt</h1>', $entries, 'The same header as the form.');
         self::assertStringContainsString('<a href="/cms/forms/' . $id . '?language=de#fields" data-count="2">', $entries, 'The other tabs lead back to the form.');
         self::assertStringContainsString('<a href="/cms/forms/' . $id . '/entries?language=de" data-count="1">', $this->html($this->request('GET', '/cms/forms/' . $id, session: $session)), 'The entries are the first tab of the form.');
