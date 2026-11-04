@@ -14,7 +14,7 @@ namespace Frootbox\Forms\Captcha;
 final readonly class CaptchaList
 {
     /**
-     * @param list<array{name: string, title: string, description: string, service: string|null}> $captchas
+     * @param list<array{name: string, title: string, description: string, service: string|null, ready: bool}> $captchas
      */
     public function __construct(
         public array $captchas,

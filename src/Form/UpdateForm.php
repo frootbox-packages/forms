@@ -61,8 +61,18 @@ final readonly class UpdateForm implements Action
         return match (true) {
             null === $this->captcha => false,
             Captchas::DEFAULT === $this->captcha => null,
-            Captchas::NONE === $this->captcha, null !== $captchas->get($this->captcha) => $this->captcha,
-            default => throw new InvalidInputException('frootbox/forms/form.update', ['/captcha' => new Message('There is no such captcha.')]),
+            Captchas::NONE === $this->captcha => $this->captcha,
+            default => $this->known($captchas, $this->captcha),
         };
+    }
+
+    /**
+     * A captcha that exists and is set up (decision 0262).
+     */
+    private function known(Captchas $captchas, string $name): string
+    {
+        $captcha = $captchas->get($name) ?? throw new InvalidInputException('frootbox/forms/form.update', ['/captcha' => new Message('There is no such captcha.')]);
+
+        return $captchas->ready($captcha) ? $name : throw new InvalidInputException('frootbox/forms/form.update', ['/captcha' => new Message('Set up this captcha in the settings first.')]);
     }
 }

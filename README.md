@@ -111,6 +111,18 @@ came back in fields named `captcha[…]` and returns
 consent the form cannot be sent, so `verify()` returns `wrong()` with
 a hint.
 
+A captcha that needs keys implements `ConfigurableCaptcha` with
+`ready()`: until it is ready, `frootbox/forms/captcha.list` says so, the
+backend greys it out, `form.update` refuses it and a form that has it
+falls back to the proof of work.
+
+In the browser the script of the forms fires two events at the form.
+`frootbox:forms-sending` comes before sending; a captcha pushes a
+promise to `event.detail.wait`, and sending waits for it, e.g. to fetch
+a token. `frootbox:forms-failed` comes after a failed try, with the
+errors by pointer in `event.detail.errors`, e.g. `/captcha`.
+`frootbox/captcha-recaptcha` is a complete example.
+
 ### Rules for the content
 
 Two rules come with the module: more links than the setting `maxLinks`

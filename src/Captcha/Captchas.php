@@ -64,8 +64,8 @@ final class Captchas
 
     /**
      * The captcha of a form, null for none. Its own choice, else the
-     * setting; an unknown name falls back to the proof of work, never to
-     * no protection.
+     * setting; an unknown name or one not set up falls back to the proof
+     * of work, never to no protection.
      */
     public function of(FormData $form): ?Captcha
     {
@@ -75,7 +75,20 @@ final class Captchas
             return null;
         }
 
-        return $this->get($name) ?? $this->get(ProofOfWork::NAME);
+        $captcha = $this->get($name);
+
+        return null !== $captcha && $this->ready($captcha) ? $captcha : $this->get(ProofOfWork::NAME);
+    }
+
+    /**
+     * Whether a captcha is set up, e.g. has the keys of its provider
+     * (decision 0262).
+     */
+    public function ready(Captcha $captcha): bool
+    {
+        $provider = $this->provider($captcha);
+
+        return !$provider instanceof ConfigurableCaptcha || $provider->ready();
     }
 
     /**

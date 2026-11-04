@@ -126,7 +126,8 @@
                                 {%- set standard = captchas.standard == 'none' ? t('No captcha') : t((captchas.captchas|filter(c => c.name == captchas.standard)|first).title ?? captchas.standard) %}
                                 {{ ui.choice({title: t('Standard of the website'), text: t('Now: {captcha}. The settings of the forms decide.', {captcha: standard}), name: 'captcha', id: 'form-captcha-default', value: 'default', checked: chosen == 'default', attrs: {disabled: not editable}}) }}
                                 {%- for captcha in captchas.captchas %}
-                                {{ ui.choice({title: t(captcha.title), text: captcha.description ? t(captcha.description) : null, name: 'captcha', id: 'form-captcha-' ~ loop.index, value: captcha.name, checked: chosen == captcha.name, attrs: {disabled: not editable}}) }}
+                                {#- One that needs its keys first is greyed out (decision 0262). -#}
+                                {{ ui.choice({title: t(captcha.title), text: captcha.ready ? (captcha.description ? t(captcha.description) : null) : t('Set it up in the settings of the extension first.'), name: 'captcha', id: 'form-captcha-' ~ loop.index, value: captcha.name, checked: chosen == captcha.name, attrs: {disabled: not editable or not captcha.ready}}) }}
                                 {%- endfor %}
                                 {{ ui.choice({title: t('No captcha'), text: t('Only the hidden field, the time and the limit per address.'), name: 'captcha', id: 'form-captcha-none', value: 'none', checked: chosen == 'none', attrs: {disabled: not editable}}) }}
                             </div>

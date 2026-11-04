@@ -50,7 +50,10 @@ async function send(form) {
   const proof = proofs.get(form);
 
   try {
-    await proof?.ready();
+    // A captcha may need a moment before sending, e.g. for its token (decision 0262).
+    const sending = { wait: [] };
+    form.dispatchEvent(new CustomEvent('frootbox:forms-sending', { detail: sending }));
+    await Promise.all([proof?.ready(), ...sending.wait]);
     const response = await fetch(form.action, {
       method: 'POST',
       body: new FormData(form),
@@ -70,14 +73,21 @@ async function send(form) {
       return;
     }
 
-    proof?.reset();
+    failed(form, proof, body.errors);
     showErrors(form, body);
   } catch {
-    proof?.reset();
+    failed(form, proof);
     showErrors(form, {});
   } finally {
     button.removeAttribute('aria-disabled');
   }
+}
+
+// After a failed try a captcha may start anew, e.g. the box of reCAPTCHA
+// after an error at it; the errors are by pointer, e.g. "/captcha".
+function failed(form, proof, errors = {}) {
+  proof?.reset();
+  form.dispatchEvent(new CustomEvent('frootbox:forms-failed', { detail: { errors } }));
 }
 
 // Checkboxes of which at least one must be chosen; the browser cannot check this.

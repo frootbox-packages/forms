@@ -30,6 +30,7 @@ final readonly class ListCaptchas implements Query
                 'title' => $captcha->title,
                 'description' => $captcha->description,
                 'service' => $captcha->service,
+                'ready' => $captchas->ready($captcha),
             ], $captchas->all())),
             Captchas::NONE === $standard || null !== $captchas->get($standard) ? $standard : ProofOfWork::NAME,
         );
