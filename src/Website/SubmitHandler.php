@@ -13,6 +13,7 @@ use Frootbox\Core\Action\Runner;
 use Frootbox\Core\Api\JsonResponder;
 use Frootbox\Core\Auth\TooManyAttemptsException;
 use Frootbox\Core\I18n\Translator;
+use Frootbox\Core\I18n\VisitorFormality;
 use Frootbox\Core\Language\Languages;
 use Frootbox\Core\Support\Message;
 use Psr\Http\Message\ResponseFactoryInterface;
@@ -37,6 +38,7 @@ final readonly class SubmitHandler implements RequestHandlerInterface
         private JsonResponder $json,
         private ResponseFactoryInterface $responses,
         private Translator $translator,
+        private VisitorFormality $formality,
         private Languages $languages,
         private FormFiles $files,
     ) {}
@@ -123,7 +125,7 @@ final readonly class SubmitHandler implements RequestHandlerInterface
 
     private function translate(string $language, Message $message): string
     {
-        return $this->translator->in($language, $message->text, ['frootbox/forms'], $message->parameters);
+        return $this->translator->in($language, $message->text, ['frootbox/forms'], $message->parameters, $this->formality->current());
     }
 
     /**
