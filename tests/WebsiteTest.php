@@ -11,6 +11,7 @@ namespace Frootbox\Forms\Tests;
 use Frootbox\Core\Action\InvalidInputException;
 use Frootbox\Core\Page\CreatePage;
 use Frootbox\Core\Page\PublishPages;
+use Frootbox\Core\Settings\UpdateSettings;
 use Frootbox\Forms\Blocks\Form;
 use Frootbox\Forms\Entry\Entries;
 use Frootbox\Forms\Form\PublishForm;
@@ -106,6 +107,20 @@ final class WebsiteTest extends FormsTestCase
         $sent = $this->send(['values' => self::valid(), '_token' => $this->token($this->form)], json: true);
         self::assertSame(200, $sent->getStatusCode());
         self::assertSame(['data' => ['message' => 'Danke, wir melden uns.']], json_decode((string) $sent->getBody(), true, flags: \JSON_THROW_ON_ERROR));
+    }
+
+    public function testAddressesTheVisitorAsTheWebsiteSays(): void
+    {
+        $this->runner()->run(new UpdateSettings('frootbox/core.formality', ['formal' => true]));
+        $response = $this->send(['values' => [...self::valid(), 'eMailAdresse' => 'keine'], '_token' => $this->token($this->form)], json: true);
+        $body = json_decode((string) $response->getBody(), true, flags: \JSON_THROW_ON_ERROR);
+
+        self::assertIsArray($body);
+        self::assertSame(['/values/eMailAdresse' => 'Bitte geben Sie eine E-Mail-Adresse ein, z. B. name@example.com.'], $body['errors'] ?? null);
+
+        $failed = $this->send(['values' => [...self::valid(), 'eMailAdresse' => 'keine'], '_token' => $this->token($this->form)]);
+        self::assertSame(303, $failed->getStatusCode());
+        self::assertStringContainsString('Bitte prüfen Sie Ihre Angaben', $this->html('/?fbFormError=' . $this->form));
     }
 
     public function testGivesAFreshToken(): void
