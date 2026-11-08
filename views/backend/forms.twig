@@ -29,7 +29,7 @@
             <li class="fb-list__item">
                 <span class="fb-list__main">
                     <a class="fb-list__title fb-list__link" href="{{ path('frootbox.forms.forms.show', {id: form.id}) }}">{{ form.title ?: t('Without a title') }}</a>
-                    <span class="fb-list__meta">{{ t(['{count} field', '{count} fields'], {count: form.fields}) }} · {{ t(['{count} entry', '{count} entries'], {count: form.entries}) }}{% if form.languages|length > 1 %} · {{ form.languages|map(code => code|upper)|join(', ') }}{% endif %}</span>
+                    <span class="fb-list__meta">{{ t(['{count} field', '{count} fields'], {count: form.fields}) }} · {{ t(['{count} submission', '{count} submissions'], {count: form.entries}) }}{% if form.languages|length > 1 %} · {{ form.languages|map(code => code|upper)|join(', ') }}{% endif %}</span>
                 </span>
                 {{ ui.status(form.status.value) }}
             </li>

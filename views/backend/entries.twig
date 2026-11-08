@@ -23,7 +23,7 @@
             ]) }}
             <div class="fb-cluster">
                 <div class="fb-stack fb-stack--sm">
-                    <p class="fb-heading-4" id="entries-title" tabindex="-1" data-fb-focus>{{ t(['{count} entry', '{count} entries'], {count: list.total}) }}</p>
+                    <p class="fb-heading-4" id="entries-title" tabindex="-1" data-fb-focus>{{ t(['{count} submission', '{count} submissions'], {count: list.total}) }}</p>
                     {% if spam %}
                     <p class="fb-muted">{{ t(['What looks like spam comes here without a mail. It is deleted after one day.', 'What looks like spam comes here without a mail. It is deleted after {count} days.'], {count: spamDays}) }}</p>
                     {% else %}

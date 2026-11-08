@@ -45,7 +45,7 @@
 "No forms yet": "Noch keine Formulare"
 "Build the first one. It stays a draft until you publish it.": "Bau das erste. Es bleibt ein Entwurf, bis Du es veröffentlichst."
 "{count} field": { one: "{count} Feld", other: "{count} Felder" }
-"{count} entry": { one: "{count} Einsendung", other: "{count} Einsendungen" }
+"{count} submission": { one: "{count} Einsendung", other: "{count} Einsendungen" }
 "The form is saved as a draft. Now add its fields.": "Das Formular ist als Entwurf gespeichert. Füg jetzt seine Felder hinzu."
 "Shown above the form, e.g. \"Contact\".": "Steht über dem Formular, z. B. „Kontakt“."
 "Email addresses that get every entry, one per line. Without, the entries are only kept here.": "E-Mail-Adressen, die jede Einsendung bekommen, eine pro Zeile. Ohne bleiben die Einsendungen nur hier."
